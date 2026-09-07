@@ -1,0 +1,1065 @@
+<!DOCTYPE html>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover">
+<title>리치 점봉판</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+KR:wght@400;500;600&family=Rajdhani:wght@600;700&family=Noto+Serif+KR:wght@700&display=swap">
+<style>
+:root{
+  --ground:#0F1513; --panel:#182220; --panel-2:#1F2C29; --line:#2C3D39; --line-2:#3B524C;
+  --ink:#ECE6D6; --ink-2:#B9C2BB; --muted:#7F908A;
+  --amber:#F5B342; --amber-2:#B57C1D; --red:#E8553F; --red-2:#B23A2A; --green:#4CB98A;
+  --num:'Rajdhani','IBM Plex Sans KR',sans-serif;
+  --ui:'IBM Plex Sans KR',system-ui,-apple-system,sans-serif;
+  --cjk:'Noto Serif KR','IBM Plex Sans KR',serif;
+  --W:100vw; --H:100dvh;
+  --S:min(var(--W),var(--H));
+  --st:clamp(64px,calc(var(--S)/6),600px);
+  --sl:var(--st);
+  --g:3px;
+}
+*{box-sizing:border-box}
+html,body{background:var(--ground);height:100%}
+body{margin:0;color:var(--ink);font-family:var(--ui);font-size:15px;line-height:1.4;-webkit-tap-highlight-color:transparent;overflow:hidden;height:100dvh;-webkit-user-select:none;user-select:none}
+button{font:inherit;color:inherit;background:none;border:0;cursor:pointer;padding:0;touch-action:manipulation}
+button:focus-visible,input:focus-visible{outline:2px solid var(--amber);outline-offset:2px}
+[hidden]{display:none!important}
+small{font-size:.8em}
+
+/* ---------- board: pinwheel ---------- */
+.board{position:fixed;left:50%;top:50%;width:var(--S);height:var(--S);transform:translate(-50%,-50%)}
+.band{position:absolute}
+.band.top{left:0;top:0;width:calc(100% - var(--sl));height:var(--st)}
+.band.right{right:0;top:0;width:var(--sl);height:calc(100% - var(--st))}
+.band.bottom{right:0;bottom:0;width:calc(100% - var(--sl));height:var(--st)}
+.band.left{left:0;bottom:0;width:var(--sl);height:calc(100% - var(--st))}
+.band.center{left:var(--sl);top:var(--st);right:var(--sl);bottom:var(--st)}
+.band.top,.band.bottom{--ch:var(--st)}
+.band.left,.band.right{--ch:var(--sl)}
+.card{position:absolute;inset:var(--g);background:var(--panel);border:1px solid var(--line);border-radius:16px;overflow:hidden}
+.band.left .card,.band.right .card{inset:auto;left:50%;top:50%;width:calc(var(--S) - var(--st) - var(--g)*2);height:calc(var(--sl) - var(--g)*2)}
+.band.left .card{transform:translate(-50%,-50%) rotate(90deg)}
+.band.right .card{transform:translate(-50%,-50%) rotate(-90deg)}
+.band.top .card{transform:rotate(180deg)}
+
+/* seat card */
+.seat .card{display:flex;align-items:stretch;gap:clamp(6px,3cqw,24px);padding:clamp(8px,3cqw,24px);cursor:pointer;container-type:inline-size}
+.seat.dealer .card{border-color:var(--red-2)}
+.seat.riichi .card{border-color:var(--amber);background:#241F13;box-shadow:inset 0 0 0 2px var(--amber),0 0 0 3px rgba(245,179,66,.28),0 0 28px rgba(245,179,66,.35)}
+.seat.riichi .score{color:#FFD27A}
+.seat.riichi .pname{color:var(--ink)}
+.who{display:flex;flex-direction:column;align-items:center;justify-content:center;gap:clamp(4px,calc(var(--ch)*.06),10px);min-width:0;flex:0 0 clamp(48px,18cqw,280px);text-align:center}
+.wind{font-family:var(--cjk);font-size:min(clamp(18px,calc(var(--ch)*.22),64px),7.5cqw);line-height:1;color:var(--ink-2);align-self:center;padding:.22em .32em;border-radius:9px;border:1px solid var(--line)}
+.seat.dealer .wind{color:#fff;background:var(--red);border-color:var(--red)}
+.pname{font-weight:600;font-size:min(clamp(11px,calc(var(--ch)*.13),36px),4.5cqw);line-height:1.1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:var(--ink-2);max-width:100%}
+.scorebox{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;min-width:0;position:relative;overflow:hidden}
+.score{font-family:var(--num);font-weight:700;font-size:min(clamp(26px,calc(var(--ch)*.42),170px),12cqw);white-space:nowrap;line-height:1;color:var(--amber);font-variant-numeric:tabular-nums;letter-spacing:.01em}
+.score.neg{color:var(--red)}
+.flash{position:absolute;left:0;right:0;bottom:4%;text-align:center;font-family:var(--num);font-weight:600;font-size:min(clamp(11px,calc(var(--ch)*.14),44px),4.5cqw);line-height:1;height:1em;color:var(--muted);font-variant-numeric:tabular-nums;transition:opacity .4s}
+.flash.up{color:var(--green)}.flash.down{color:var(--red)}
+.tip{margin-top:clamp(1px,calc(var(--ch)*.02),4px);text-align:center;font-size:min(clamp(9px,calc(var(--ch)*.09),22px),3.4cqw);line-height:1;color:var(--muted);opacity:.55;letter-spacing:.04em;white-space:nowrap;pointer-events:none}
+@container (max-width:300px){.tip{display:none}}
+.rbtn{flex:0 0 clamp(60px,34cqw,340px);border-radius:14px;border:1px solid var(--line);background:var(--panel-2);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:clamp(5px,calc(var(--ch)*.07),12px);font-size:min(calc(var(--ch)*.3),10.5cqw);font-weight:700;color:var(--ink-2);letter-spacing:.04em;line-height:1;transition:transform .08s;padding:6px 8px}
+.rbtn:not(.on){color:rgba(185,194,187,.5)}
+.rbtn:not(.on) .stick{background:rgba(59,82,76,.6)}
+.rbtn:active{transform:scale(.97)}
+.rbtn .stick{width:78%;height:clamp(8px,calc(var(--ch)*.1),28px);border-radius:14px;background:var(--line-2);position:relative}
+.rbtn.on{background:var(--amber);border-color:var(--amber);color:#1a1408;font-weight:700}
+.rbtn.on .stick{background:#FFFBF2;box-shadow:0 1px 0 rgba(0,0,0,.25)}
+.rbtn.on .stick::after{content:'';position:absolute;left:50%;top:50%;height:68%;aspect-ratio:1/1;width:auto;border-radius:50%;background:var(--red);transform:translate(-50%,-50%)}
+.rbtn:disabled{opacity:.35}
+
+/* center card */
+.center .card{background:transparent;border:0;border-radius:0;overflow:visible}
+.c-in{position:absolute;inset:0;display:flex;flex-direction:column;padding:0;container-type:inline-size}
+.center.r180 .c-in{transform:rotate(180deg)}
+.center.r90 .c-in,.center.r270 .c-in{inset:auto;left:50%;top:50%;width:calc(var(--H) - var(--st)*2 - var(--g)*4);height:calc(var(--W) - var(--sl)*2 - var(--g)*4)}
+.center.r90 .c-in{transform:translate(-50%,-50%) rotate(90deg)}
+.center.r270 .c-in{transform:translate(-50%,-50%) rotate(-90deg)}
+#layer{position:fixed;left:50%;top:50%;z-index:20;transform:translate(-50%,-50%)}
+#layer:empty,#layer[hidden]{display:none}
+.c-top{display:flex;justify-content:space-between;align-items:center;gap:8px}
+.tag{font-size:11px;letter-spacing:.08em;padding:3px 8px;border-radius:999px;border:1px solid var(--line-2);color:var(--muted);white-space:nowrap}
+.tag.hot{border-color:var(--red);color:var(--red)}
+.more{width:36px;height:36px;border-radius:12px;border:1px solid var(--line-2);background:var(--panel);font-size:22px;line-height:1;color:var(--ink-2);display:flex;align-items:center;justify-content:center}
+.c-mid{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:10px;min-height:0;text-align:center}
+.round{font-family:var(--cjk);font-size:clamp(15px,min(30cqw,30cqh),130px);line-height:1;white-space:nowrap}
+.round b{font-family:var(--num);font-weight:700;font-size:1.2em;color:var(--amber);margin:0 3px;font-variant-numeric:tabular-nums}
+.sub{display:flex;gap:14px;color:var(--ink-2);font-size:clamp(12px,2.4vmin,16px)}
+.sub b{font-family:var(--num);font-size:1.35em;color:var(--ink);font-variant-numeric:tabular-nums}
+.primary{width:100%;padding:16px 10px;border-radius:14px;background:var(--amber);color:#1a1408;font-weight:600;font-size:18px;border:1px solid var(--amber)}
+.primary:disabled{opacity:.4}
+.primary.warn{background:var(--red);border-color:var(--red);color:#fff}
+.pw{position:relative;flex:1;min-height:0;--t:calc(min(100cqw,100cqh)/4);--tw:var(--t);--th:var(--t);--pg:6px;--gd:4.3px;container-type:size}
+.pwb{position:absolute;touch-action:none;-webkit-touch-callout:none;background:var(--amber);border:0;color:#1a1408;border-radius:0;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:clamp(22px,min(14cqw,14cqh),130px);transition:filter .08s;overflow:hidden}
+.pwb:active{filter:brightness(.9)}
+.pwb:disabled{opacity:.4}
+.pwb .lab{display:flex;flex-direction:column;align-items:center;gap:.12em;line-height:1;white-space:nowrap}
+.pwb small{font-size:.36em;font-weight:600;opacity:.75;letter-spacing:.02em}
+.pwb.top{left:0;top:0;width:100%;height:var(--t);clip-path:polygon(var(--gd) 0,calc(100% - var(--gd)) 0,calc(100% - var(--t) - var(--gd)) 100%,calc(var(--t) + var(--gd)) 100%)}
+.pwb.top .lab{transform:rotate(180deg)}
+.pwb.right{right:0;top:0;width:var(--t);height:100%;clip-path:polygon(100% var(--gd),100% calc(100% - var(--gd)),0 calc(100% - var(--t) - var(--gd)),0 calc(var(--t) + var(--gd)))}
+.pwb.right .lab{transform:rotate(-90deg)}
+.pwb.bottom{left:0;bottom:0;width:100%;height:var(--t);clip-path:polygon(calc(var(--t) + var(--gd)) 0,calc(100% - var(--t) - var(--gd)) 0,calc(100% - var(--gd)) 100%,var(--gd) 100%)}
+.pwb.left{left:0;top:0;width:var(--t);height:100%;clip-path:polygon(0 var(--gd),100% calc(var(--t) + var(--gd)),100% calc(100% - var(--t) - var(--gd)),0 calc(100% - var(--gd)))}
+.pwb.left .lab{transform:rotate(90deg)}
+.pwb:focus-visible{outline:none;filter:brightness(1.1)}
+.pwm{position:absolute;left:calc(var(--tw) + var(--pg));top:calc(var(--th) + var(--pg));right:calc(var(--tw) + var(--pg));bottom:calc(var(--th) + var(--pg));display:flex;flex-direction:column;gap:var(--pg)}
+.pwm{container-type:size}
+.pwm-top,.pwm-bot{flex:1;min-height:0;border-radius:14px;border:1px solid var(--line-2);background:var(--panel);display:flex;align-items:center;justify-content:center;color:rgba(185,194,187,.3);font-size:min(36cqw,44cqh);font-weight:800;overflow:hidden;padding:0 4%;line-height:1}
+.pwm-top span,.pwm-bot span{display:flex;justify-content:space-between;width:100%}
+.pwm-top{color:rgba(232,85,63,.5);background:rgba(232,85,63,.09);border-color:rgba(232,85,63,.45)}
+.pwm-top:active{background:rgba(232,85,63,.12)}
+.pwm-top i,.pwm-bot i{font-style:normal}
+.pwc{position:absolute;left:50%;top:50%;transform:translate(-50%,-50%);width:min(58cqw,58cqh);height:min(58cqw,58cqh);border-radius:50%;background:var(--panel-2);border:1px solid var(--line-2);box-shadow:0 10px 30px rgba(0,0,0,.45),inset 0 0 0 1px rgba(255,255,255,.03);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:clamp(2px,3cqh,8px);pointer-events:none;color:var(--ink);container-type:size;padding:6%}
+.pwc .tag{margin-bottom:1px}
+.pwm-top:active,.pwm-bot:active{background:var(--panel-2)}
+.pwm-top:disabled{opacity:.4}
+.burger{display:inline-flex;flex-direction:column;gap:3px;width:16px}
+.burger i{display:block;height:2px;border-radius:1px;background:currentColor}
+/* drag-to-assign overlay */
+.wover{position:fixed;inset:0;z-index:45;background:rgba(6,10,9,.82)}
+.wzone{position:fixed;border-radius:16px;border:2px solid var(--line-2);background:rgba(31,44,41,.9);display:flex;align-items:center;justify-content:center;color:var(--ink);transition:background .1s,box-shadow .1s,border-color .1s}
+.wzone .zl{display:flex;flex-direction:column;align-items:center;gap:6px;line-height:1;white-space:nowrap}
+.wzone .zl b{font-weight:700;font-size:clamp(20px,5vmin,40px);letter-spacing:.12em}
+.wzone .zl span{font-size:clamp(13px,2.6vmin,18px);font-weight:600;color:var(--ink-2)}
+.wzone.hov{background:var(--amber);border-color:#FFE2A8;color:#1a1408;box-shadow:0 0 0 4px rgba(245,179,66,.35),0 0 48px 8px rgba(245,179,66,.55)}
+.wzone.hov .zl span{color:#1a1408;opacity:.75}
+.wzone.me{border-color:var(--amber-2)}
+.wzone.center{border-style:dashed;color:var(--ink-2)}
+.wzone.center .zl b{font-size:clamp(16px,3.5vmin,26px)}
+.dghost{position:fixed;z-index:50;pointer-events:none;background:var(--amber);color:#1a1408;font-weight:700;font-size:14px;padding:6px 12px;border-radius:999px;box-shadow:0 8px 20px rgba(0,0,0,.45);transform:translate(-50%,-140%);white-space:nowrap}
+.sticks{display:flex;flex-direction:column;gap:0;align-items:center;margin-top:-2px}
+.stkrow{display:flex;align-items:center;justify-content:center;flex-wrap:nowrap;gap:3px;line-height:1;margin:-1px 0;font-size:clamp(10px,min(11cqw,12cqh),32px);color:var(--ink-2)}
+.stkrow b{font-family:var(--num);font-size:1.35em;color:var(--ink);min-width:1.6em;text-align:left;font-variant-numeric:tabular-nums;margin-left:3px}
+.stk{display:block;width:clamp(22px,min(26cqw,30cqh),110px);height:auto;filter:drop-shadow(0 1px 0 rgba(0,0,0,.4))}
+.stk.dim{opacity:.3}
+@container (max-height:110px){.pwc .tag{display:none}}
+
+/* ---------- dock mode: when the viewport is clearly wider or taller than square, 유국/메뉴 leave the board ---------- */
+#dock{display:none;--dkw:min(calc((var(--W) - var(--S))/2 - var(--g)*2),calc(var(--S)*.5));--dkh:min(calc((var(--H) - var(--S))/2 - var(--g)*2),calc(var(--S)*.5))}
+.dk{position:fixed;z-index:10;border-radius:14px;border:1px solid var(--line-2);background:var(--panel);color:rgba(185,194,187,.3);font-weight:800;line-height:1;display:flex;align-items:center;justify-content:center;overflow:hidden;container-type:size;padding:0}
+.dk span{display:flex;justify-content:center;align-items:center;gap:.3em;width:100%;height:100%}
+.dk i{font-style:normal}
+.dk:active{background:var(--panel-2)}
+.dk.dk-draw{color:rgba(232,85,63,.5);background:rgba(232,85,63,.09);border-color:rgba(232,85,63,.45)}
+.dk.dk-draw:active{background:rgba(232,85,63,.12)}
+.dk:disabled{opacity:.4}
+@media (min-aspect-ratio:13/10),(max-aspect-ratio:10/13){
+  :root{--st:clamp(64px,calc(var(--S)/5),600px);--sl:var(--st)}
+  .pw{--t:calc(min(100cqw,100cqh)/2)}
+  .pwb{font-size:clamp(22px,min(15cqw,15cqh),130px)}
+  .pwb.bottom .lab{transform:translateY(9cqh)}
+  .pwb.top .lab{transform:rotate(180deg) translateY(9cqh)}
+  .pwb.left .lab{transform:rotate(90deg) translateY(9cqw)}
+  .pwb.right .lab{transform:rotate(-90deg) translateY(9cqw)}
+  .pwm{left:0;top:0;right:0;bottom:0;pointer-events:none}
+  .pwm-top,.pwm-bot{display:none}
+  .pwc{width:min(36cqw,36cqh);height:min(36cqw,36cqh)}
+  #dock{display:block}
+}
+@media (min-aspect-ratio:13/10){
+  .dk{top:50%;transform:translateY(-50%);width:var(--dkw);height:calc(var(--S) - var(--g)*2)}
+  .dk span{font-size:min(68cqw,26cqh)}
+  .dk span{flex-direction:column}
+  .dk.dk-draw{left:calc(50% - var(--S)/2 - var(--g) - var(--dkw))}
+  .dk.dk-menu{left:calc(50% + var(--S)/2 + var(--g))}
+}
+@media (max-aspect-ratio:10/13){
+  .dk{left:50%;transform:translateX(-50%);height:var(--dkh);width:calc(var(--S) - var(--g)*2)}
+  .dk span{font-size:min(60cqh,20cqw)}
+  .dk span{flex-direction:row}
+  .dk.dk-draw{top:calc(50% - var(--S)/2 - var(--g) - var(--dkh))}
+  .dk.dk-menu{top:calc(50% + var(--S)/2 + var(--g))}
+}
+
+/* ---------- POV overlay ---------- */
+.pov{position:absolute;inset:0;background:rgba(15,21,19,.985);z-index:30;cursor:pointer}
+.pov-in{position:absolute;left:50%;top:50%;display:flex;align-items:center;justify-content:center}
+.pgrid{display:grid;grid-template-columns:repeat(3,1fr);grid-template-rows:repeat(3,1fr);gap:calc(var(--cell)*.06)}
+.pv{border:1px solid var(--line);border-radius:calc(var(--cell)*.1);padding:calc(var(--cell)*.06);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:calc(var(--cell)*.04);text-align:center;background:var(--panel);min-width:0;min-height:0}
+.pv .rel{font-size:calc(var(--cell)*.085);letter-spacing:.1em;color:var(--muted);line-height:1}
+.pv .nm{font-size:calc(var(--cell)*.1);font-weight:600;color:var(--ink-2);max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;line-height:1.2}
+.pv .df{font-family:var(--num);font-weight:700;font-size:calc(var(--cell)*.3);line-height:1;font-variant-numeric:tabular-nums;margin:calc(var(--cell)*.02) 0}
+.pv .df.up{color:var(--green)}.pv .df.down{color:var(--red)}.pv .df.zero{color:var(--muted)}
+.pv .sc{font-family:var(--num);font-weight:600;font-size:calc(var(--cell)*.11);color:var(--muted);font-variant-numeric:tabular-nums;line-height:1}
+.pv.toimen{grid-area:1/2}.pv.kami{grid-area:2/1}.pv.shimo{grid-area:2/3}.pv.me{grid-area:3/2}
+.pv.me{background:var(--panel-2);border-color:var(--amber-2)}
+.pv.me .rel,.pv.me .nm{color:var(--ink)}
+.pv.me .df{color:var(--amber)}
+.pv.mid{grid-area:2/2;background:transparent;border-color:transparent}
+.pv.mid .rk{font-family:var(--num);font-weight:700;font-size:calc(var(--cell)*.36);line-height:1;color:var(--ink)}
+.pv.mid .rk small{font-family:var(--ui);font-size:.32em;font-weight:600;color:var(--ink-2);margin-left:3px}
+.pv.mid .rd{font-family:var(--cjk);font-size:calc(var(--cell)*.11);color:var(--muted);line-height:1.2}
+.pv.mid .hint{font-size:calc(var(--cell)*.07);color:var(--muted);margin-top:calc(var(--cell)*.04)}
+.seat .card{touch-action:none;-webkit-touch-callout:none}
+
+/* ---------- full sheets (wizard, menus) ---------- */
+.full{position:absolute;inset:0;background:var(--ground);z-index:20;display:flex;flex-direction:column}
+.f-head{display:flex;align-items:center;gap:10px;padding:14px 16px 8px;padding-top:calc(14px + env(safe-area-inset-top))}
+.back{width:40px;height:40px;border-radius:12px;border:1px solid var(--line);background:var(--panel);font-size:20px;display:flex;align-items:center;justify-content:center;color:var(--ink-2)}
+.f-title{flex:1;font-size:18px;font-weight:600}
+.f-head.center{justify-content:center;position:relative;padding:20px 60px 4px}
+.f-head.center .f-title{flex:none;font-size:22px;text-align:center;letter-spacing:.02em}
+.xbtn{position:absolute;right:14px;top:14px;width:38px;height:38px;border-radius:50%;border:1px solid var(--line-2);background:var(--panel-2);color:var(--ink-2);font-size:22px;line-height:1;display:flex;align-items:center;justify-content:center}
+.f-q.center{text-align:center;font-size:16px;color:var(--ink);padding:4px 16px 16px}
+.f-q .qbig{display:block;font-size:clamp(20px,5.5vmin,28px);font-weight:700;color:var(--ink);line-height:1.3;letter-spacing:.01em}
+.f-q .qbig i{font-style:normal;color:var(--amber);margin:0 .25em}
+.f-q .qbig small{display:block;font-size:.6em;font-weight:500;color:var(--muted);margin-top:2px}
+.pays{display:flex;flex-direction:column;gap:8px}
+.pay{display:grid;grid-template-columns:1fr auto 1fr;align-items:center;gap:10px;padding:10px 14px;border-radius:14px;background:var(--panel-2);border:1px solid var(--line);min-height:56px}
+.pay .from{text-align:right;font-weight:700;font-size:clamp(17px,4vmin,22px);color:var(--ink-2);min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.pay .from.multi{font-size:clamp(14px,3.2vmin,17px);white-space:normal;line-height:1.25;text-overflow:clip}
+.pay .from .dot{color:var(--muted);margin:0 .3em;font-weight:500}
+.pay .to{text-align:left;font-weight:700;font-size:clamp(17px,4vmin,22px);color:var(--amber);min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.pay .mid{display:flex;flex-direction:column;align-items:center;line-height:1;gap:3px}
+.pay .amt{display:flex;align-items:center;gap:6px}
+.pay .mid b{font-family:var(--num);font-weight:700;font-size:clamp(22px,5.5vmin,28px);color:var(--ink);font-variant-numeric:tabular-nums}
+.pay .mid i{font-style:normal;color:var(--amber);font-size:18px;line-height:1}
+.pay .mid small{font-size:11px;color:var(--muted);letter-spacing:.06em}
+.pay.k{background:var(--panel);border-style:dashed}
+.pay.k .from{color:var(--muted);font-size:15px;font-weight:600}
+.f-foot.nav{align-items:center;justify-content:space-between;gap:12px}
+.nb{width:58px;height:58px;border-radius:50%;border:1px solid var(--line-2);background:var(--panel-2);color:var(--ink);font-size:30px;line-height:1;display:flex;align-items:center;justify-content:center;flex:none;padding-bottom:3px}
+.nb.go{background:var(--amber);border-color:var(--amber);color:#1a1408;font-size:26px;padding-bottom:0}
+.nb:disabled{opacity:.28}
+.navmid{flex:1;display:flex;gap:8px;min-height:1px}
+.navmid .ghost,.navmid .primary{flex:1}
+.nav-next{flex:1.4;width:auto;min-height:58px;font-size:18px}
+.steps{display:flex;gap:5px}
+.steps i{width:7px;height:7px;border-radius:50%;background:var(--line-2)}
+.steps i.on{background:var(--amber)}
+.f-q{padding:6px 16px 14px;color:var(--ink-2);font-size:15px}
+.f-body{flex:1;overflow:auto;padding:0 16px 16px;display:flex;flex-direction:column;gap:10px;scrollbar-width:none;-ms-overflow-style:none}
+.f-body::-webkit-scrollbar{display:none;width:0;height:0}
+.sheet::-webkit-scrollbar,.menu::-webkit-scrollbar{display:none}
+*{scrollbar-width:none}
+.f-body>*{flex-shrink:0}
+[data-pane]{display:flex;flex-direction:column;gap:10px}
+[data-pane][hidden]{display:none}
+.f-foot{padding:12px 16px calc(14px + env(safe-area-inset-bottom));display:flex;gap:8px}
+.f-foot .primary{flex:1}
+.ghost{flex:1;padding:16px 10px;border-radius:14px;border:1px solid var(--line-2);background:var(--panel);font-weight:600;font-size:17px}
+.ghost.danger{border-color:var(--red);color:var(--red)}
+.ghost.nowrap{white-space:nowrap;font-size:16px;padding-left:14px;padding-right:14px}
+.big{display:grid;gap:8px}
+.big.c2{grid-template-columns:1fr 1fr}
+.big.c1{grid-template-columns:1fr}
+.bopt{padding:18px 14px;border-radius:14px;background:var(--panel);border:1px solid var(--line);font-size:18px;font-weight:600;text-align:left;display:flex;align-items:center;gap:12px;min-height:64px}
+.bopt .wind{font-size:22px;padding:3px 7px;align-self:center}
+.bopt .sub2{margin-left:auto;font-family:var(--num);font-weight:600;font-size:18px;color:var(--muted);font-variant-numeric:tabular-nums}
+.bopt.on{background:var(--ink);color:#10161a;border-color:var(--ink)}
+.bopt.on .wind,.bopt.on .sub2{color:#10161a;border-color:#10161a}
+.bopt.dealer .wind{color:#fff;background:var(--red);border-color:var(--red)}
+.bopt.on.dealer .wind{color:#fff}
+.bopt:disabled{opacity:.3}
+.bopt.tall{flex-direction:column;justify-content:center;gap:6px;min-height:140px;font-size:26px}
+.bopt.tall small{font-size:13px;font-weight:500;color:var(--muted)}
+.bopt.tall.on small{color:#10161a;opacity:.7}
+.big.c1[style*="flex:1"]{grid-auto-rows:1fr}
+.chips{display:grid;grid-template-columns:repeat(4,1fr);gap:8px}
+.chip{padding:14px 4px;border-radius:12px;border:1px solid var(--line);background:var(--panel);font-family:var(--num);font-weight:700;font-size:20px;font-variant-numeric:tabular-nums;text-align:center;min-height:56px}
+.chip.on{background:var(--ink);color:#10161a;border-color:var(--ink)}
+.chip.sm{font-size:16px;padding:10px 4px;min-height:44px}
+.chip small{color:var(--muted)}
+.chips.hf{flex:none;grid-auto-rows:auto}
+.chips.dimmed{opacity:.35}
+.chip:disabled{cursor:default}
+.full.dlg .chips.hf .chip{min-height:46px;font-size:16px}
+.chip.on small{color:#10161a;opacity:.6}
+.lbl{font-size:12px;letter-spacing:.08em;color:var(--muted);margin:8px 0 2px;display:flex;justify-content:space-between}
+.seg{display:flex;border:1px solid var(--line);border-radius:12px;overflow:hidden}
+.seg button{flex:1;padding:11px 6px;font-size:14px;font-weight:500;color:var(--ink-2);background:var(--panel)}
+.seg button.on{background:var(--ink);color:#10161a;font-weight:600}
+input[type=number],input[type=text]{width:100%;padding:12px 14px;border-radius:12px;background:var(--panel);border:1px solid var(--line-2);color:var(--ink);font:inherit;font-size:17px;-webkit-user-select:text;user-select:text}
+input[type=number]{font-family:var(--num);font-weight:700;font-size:28px;font-variant-numeric:tabular-nums}
+.row2{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+input[type=number]::-webkit-inner-spin-button,input[type=number]::-webkit-outer-spin-button{-webkit-appearance:none;margin:0}
+input[type=number]{-moz-appearance:textfield;appearance:textfield}
+input[type=number].auto{color:var(--muted)}
+.olist{display:flex;flex-direction:column;gap:6px;position:relative}
+.prow-wrap{display:grid;grid-template-columns:auto 1fr;gap:8px;align-items:start}
+.windcol{display:flex;flex-direction:column;gap:6px}
+.windcell{height:58px;display:flex;align-items:center;justify-content:center}
+.windcell .wind{font-size:22px;padding:6px 9px}
+.orow{display:grid;grid-template-columns:1fr auto;align-items:center;gap:8px;height:58px;padding:0 6px 0 6px;border-radius:12px;background:var(--panel);border:1px solid var(--line)}
+.orow input[type=text]{padding:10px 12px;font-size:16px;background:var(--ground)}
+.grip{width:44px;height:44px;display:flex;align-items:center;justify-content:center;border-radius:10px;color:var(--muted);font-size:22px;line-height:1;touch-action:none;-webkit-touch-callout:none;cursor:grab;user-select:none}
+.grip:active{background:var(--panel-2);cursor:grabbing}
+.tabs{margin-bottom:6px}
+.tabs button{padding:13px 6px;font-size:15px}
+.orow .wind{font-size:20px;padding:4px 8px;align-self:center}
+.orow.drag{position:relative;z-index:2;background:var(--panel-2);border-color:var(--line-2);box-shadow:0 10px 24px rgba(0,0,0,.4);cursor:grabbing}
+.sum{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:4px 14px}
+.sum .li{display:flex;justify-content:space-between;align-items:center;padding:11px 0;border-bottom:1px solid var(--line);gap:12px}
+.sum .li:last-child{border-bottom:0}
+.sum .k{color:var(--muted);font-size:14px}
+.sum .v{font-weight:600;text-align:right}
+.sum .v.n{font-family:var(--num);font-size:22px;font-variant-numeric:tabular-nums}
+.sum .v.up{color:var(--green)}.sum .v.down{color:var(--red)}
+.sum .v.amber{color:var(--amber);font-family:var(--num);font-size:24px}
+.stp{display:flex;gap:6px;align-items:stretch}
+.stp input{text-align:center;padding:8px}
+.stp-b{width:52px;border-radius:12px;border:1px solid var(--line-2);background:var(--panel);font-size:24px;font-weight:600;color:var(--ink-2);flex-shrink:0}
+.mrows{display:flex;flex-direction:column;gap:8px}
+.mrow{display:grid;grid-template-columns:auto minmax(56px,.6fr) 1.6fr;gap:8px;align-items:center}
+.mrow .wind{font-size:20px;padding:5px 8px}
+.mrow .wind.dl{color:#fff;background:var(--red);border-color:var(--red)}
+.mrow.setup{grid-template-columns:auto 1fr}
+.mrow.setup .wind{font-size:22px;padding:6px 9px;align-self:center}
+.mname{font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.mr{display:flex;align-items:center;gap:8px;padding:0 14px;height:100%;min-height:52px;border-radius:12px;border:1px solid var(--line);background:var(--panel);font-size:14px;font-weight:600;color:var(--muted);white-space:nowrap}
+.mr .stick{width:26px;height:6px;border-radius:3px;background:var(--line-2);position:relative}
+.mr.on{background:var(--amber);border-color:var(--amber);color:#1a1408}
+.mr.on .stick{background:#FFFBF2}
+.mr.on .stick::after{content:'';position:absolute;left:50%;top:50%;width:5px;height:5px;border-radius:50%;background:var(--red);transform:translate(-50%,-50%)}
+.check{display:flex;align-items:center;gap:12px;font-size:16px;padding:14px;border-radius:14px;background:var(--panel);border:1px solid var(--line)}
+.check input{width:22px;height:22px;accent-color:var(--amber);margin:0}
+.note{font-size:13px;color:var(--muted);line-height:1.5}
+
+/* bottom menu sheet */
+.overlay{position:absolute;inset:0;background:rgba(6,10,9,.72);z-index:25;display:flex;align-items:center;justify-content:center;padding:16px}
+.menu{background:var(--panel);border:1px solid var(--line-2);border-radius:18px;width:100%;max-width:560px;padding:8px 8px 12px}
+.mi{display:flex;align-items:center;gap:14px;width:100%;padding:14px 12px;border-radius:12px;text-align:left;font-size:16px;font-weight:500}
+.mi:active{background:var(--panel-2)}
+.mi .ic{width:34px;height:34px;border-radius:10px;background:var(--panel-2);border:1px solid var(--line);display:flex;align-items:center;justify-content:center;font-family:var(--cjk);font-size:15px;color:var(--ink-2);flex-shrink:0}
+.mi .t{flex:1;min-width:0}
+.mi .d{display:block;font-size:12px;color:var(--muted);font-weight:400;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.mi:disabled{opacity:.4}
+.mi.sep{border-top:1px solid var(--line);border-radius:0;margin-top:4px;padding-top:16px}
+
+/* log / table */
+.lrow{display:grid;grid-template-columns:96px 1fr;gap:2px 10px;padding:10px 0;border-bottom:1px solid var(--line);font-size:14px}
+.lrow .r{color:var(--muted);font-family:var(--cjk);font-size:13px}
+.lrow .d{grid-column:1/-1;display:flex;justify-content:flex-end;gap:6px;font-family:var(--num);font-weight:600;font-variant-numeric:tabular-nums}
+.lrow .d span{min-width:58px;text-align:right;color:var(--muted)}
+.lrow .d span.up{color:var(--green)}.lrow .d span.down{color:var(--red)}
+.tbl{width:100%;border-collapse:collapse;font-size:15px}
+.tbl th{font-size:12px;letter-spacing:.08em;color:var(--muted);text-align:right;font-weight:500;padding:6px 8px;border-bottom:1px solid var(--line)}
+.tbl th:first-child,.tbl td:first-child{text-align:left}
+.tbl td{padding:12px 8px;text-align:right;border-bottom:1px solid var(--line);font-family:var(--num);font-weight:600;font-size:20px;font-variant-numeric:tabular-nums}
+.tbl td:first-child{font-family:var(--ui);font-weight:600;font-size:16px}
+.tbl td.up{color:var(--green)}.tbl td.down{color:var(--red)}
+.rank{display:inline-block;width:24px;height:24px;border-radius:50%;background:var(--panel-2);border:1px solid var(--line-2);font-family:var(--num);font-size:14px;text-align:center;line-height:22px;margin-right:8px;color:var(--ink-2)}
+.rank.top{background:var(--amber);color:#1a1408;border-color:var(--amber)}
+.toast{position:fixed;left:50%;bottom:28px;transform:translateX(-50%);background:var(--ink);color:#10161a;padding:10px 16px;border-radius:10px;font-size:14px;font-weight:500;z-index:40;box-shadow:0 8px 24px rgba(0,0,0,.4);max-width:90vw;text-align:center}
+
+/* dialog variant */
+.dim{position:absolute;inset:0;background:rgba(6,10,9,.8);z-index:20;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:8px;padding:clamp(8px,1.6vmin,20px)}
+.steps.out{flex:0 0 auto}
+.steps.out i{width:8px;height:8px}
+.full.dlg{position:relative;inset:auto;width:100%;max-width:760px;height:100%;min-height:0;flex:1 1 auto;border-radius:20px;border:1px solid var(--line-2);background:var(--panel);box-shadow:0 24px 64px rgba(0,0,0,.5)}
+.full.dlg .f-head{padding-top:14px}
+.full.dlg .f-head.center .f-title{font-size:24px}
+.full.dlg .f-q.center{font-size:17px}
+.full.dlg .f-body>.big{flex:1 1 0;min-height:0;grid-auto-rows:1fr;align-content:stretch}
+.full.dlg .f-body>.big .bopt{min-height:64px;font-size:20px;height:100%}
+.full.dlg .f-body>.big .bopt.tall{min-height:120px;font-size:30px}
+.full.dlg .chips{flex:1 1 0;min-height:0;grid-auto-rows:1fr}
+.full.dlg .chip{font-size:22px;min-height:60px}
+.full.dlg .nb{width:64px;height:64px;font-size:34px}
+.full.dlg .navmid .ghost,.full.dlg .navmid .primary,.full.dlg .nav-next{min-height:64px;font-size:19px}
+.full.dlg .f-foot{padding:12px 16px 16px}
+.full.dlg .f-foot{padding-bottom:16px}
+.full.dlg .bopt,.full.dlg .chip,.full.dlg .sum,.full.dlg .check,.full.dlg .seg button,.full.dlg input{background:var(--panel-2)}
+.full.dlg .bopt.on,.full.dlg .chip.on,.full.dlg .seg button.on{background:var(--ink)}
+.full.dlg.sm{max-width:420px;height:auto;flex:none}
+.f-foot.col{flex-direction:column}
+.f-foot.col .ghost,.f-foot.col .primary{flex:none;width:100%}
+.dlg-text{font-size:16px;color:var(--ink-2);line-height:1.6;padding:4px 0 6px}
+.sect{font-size:12px;letter-spacing:.1em;color:var(--muted);margin:18px 0 0;padding-top:14px;border-top:1px solid var(--line)}
+/* chart */
+.chart-wrap{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:12px 12px 10px;position:relative}
+.chart-wrap canvas{width:100%;display:block;touch-action:pan-y}
+.lg{display:flex;gap:14px;flex-wrap:wrap;font-size:13px;color:var(--ink-2);margin-top:8px}
+.lg span{display:inline-flex;align-items:center;gap:6px}
+.lg i{width:10px;height:10px;border-radius:50%;display:inline-block}
+.imgview{display:flex;flex-direction:column;gap:12px;align-items:center}
+.imgview img{max-width:100%;border-radius:12px;border:1px solid var(--line-2)}
+</style>
+
+<div class="board" id="board">
+  <div class="band top seat" data-seat="2"></div>
+  <div class="band left seat" data-seat="3"></div>
+  <div class="band center" id="center"></div>
+  <div class="band right seat" data-seat="1"></div>
+  <div class="band bottom seat" data-seat="0"></div>
+</div>
+<div id="dock"><button class="dk dk-draw" data-act="draw"><span><i>유</i><i>국</i></span></button><button class="dk dk-menu" data-act="menu" aria-label="메뉴"><span><i>메</i><i>뉴</i></span></button></div>
+<div id="layer"></div>
+
+<script>
+(function(){
+const WINDS=['東','南','西','北'];
+const KEY='riichi-tenbou-v4';
+const DEFAULT_NAMES=['조조','리지','쟝쟝','후후'];
+const OLD_DEFAULTS=['동','남','서','북'];
+const isDefaultName=(n,i)=>n===DEFAULT_NAMES[i]||n===OLD_DEFAULTS[i];
+const SERIES=['#3987e5','#d95926','#2fa36b','#b862d6'];
+const UMA={none:[0,0,0,0],'5-10':[10,5,-5,-10],'10-20':[20,10,-10,-20],'10-30':[30,10,-10,-30]};
+const RON_KO=[1000,1300,1600,2000,2600,3200,3900,5200,6400,7700,8000,12000,16000,24000,32000,48000];
+const RON_OYA=[1500,2000,2400,2900,3900,4800,5800,7700,9600,11600,12000,18000,24000,36000,48000];
+const TSUMO_KO=[[300,500],[400,700],[500,1000],[700,1300],[800,1600],[1000,2000],[1300,2600],[1600,3200],[2000,4000],[3000,6000],[4000,8000],[6000,12000],[8000,16000]];
+const TSUMO_OYA=[500,700,800,1000,1300,1600,2000,2600,3200,4000,6000,8000,12000,16000];
+const LIMITS=[['만관',5],['하네만',6],['배만',8],['삼배만',11],['역만',13],['더블역만',26],['트리플역만',39],['4배역만',52]];
+const FUS=[20,25,30,40,50,60,70,80,90,100,110];
+const $=s=>document.querySelector(s);
+const esc=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const sgn=n=>n>0?'+'+n:n<0?'-'+Math.abs(n):'0';
+const cls=n=>n>0?'up':n<0?'down':'zero';
+const up100=x=>Math.ceil(x/100)*100;
+
+let S=null,F=null,D=null,M=null,U=null,flash=null,flashT=null,toastT=null,povSeat=null,press=null,chartState=null;
+const HOLD_MS=320;
+const SEAT_ROT=[0,-90,180,90];
+const POS_CLASS=['bottom','right','top','left'];
+const posOf=i=>(i-dealer()+4)%4;
+function setLayerRot(rot){const L=$('#layer');L.hidden=false;const sw=Math.abs(rot)===90;const w=sw?innerHeight:innerWidth,h=sw?innerWidth:innerHeight;L.style.width=w+'px';L.style.height=h+'px';L.style.transform=`translate(-50%,-50%) rotate(${rot}deg)`}
+
+function defaultSettings(){return {length:'han',start:25000,oka:30000,uma:'10-20',tobi:true,finalCalc:true}}
+function newGame(names,settings){return {players:names.map(n=>({name:n,score:settings.start,riichi:false})),roundWind:0,kyoku:1,honba:0,kyotaku:0,log:[],settings,ended:false,setup:false,started:Date.now()}}
+const dealer=()=>(S.kyoku-1)%4;
+const lastWind=()=>S.settings.length==='ton'?0:1;
+const isOorasu=()=>!S.ended&&S.roundWind===lastWind()&&S.kyoku===4;
+const roundLabel=()=>`${WINDS[S.roundWind]}${S.kyoku}局`+(S.honba?` ${S.honba}본장`:'');
+const shortRound=()=>`${WINDS[S.roundWind]}${S.kyoku}`;
+const others=w=>[0,1,2,3].filter(i=>i!==w);
+const name=i=>S.players[i].name;
+const seatWind=i=>WINDS[(i-dealer()+4)%4];
+const isDealerWinner=f=>f.winner===dealer();
+
+function save(){try{localStorage.setItem(KEY,JSON.stringify(S))}catch(e){}}
+function load(){try{const r=localStorage.getItem(KEY);if(r){const o=JSON.parse(r);if(o&&o.players&&o.players.length===4){o.settings=Object.assign(defaultSettings(),o.settings||{});o.players.forEach((pl,i)=>{if(pl.name===OLD_DEFAULTS[i])pl.name=DEFAULT_NAMES[i]});return o}}}catch(e){}return null}
+function log(text,deltas,kind){S.log.push({round:roundLabel(),sr:shortRound(),text,kind:kind||'info',deltas:deltas?deltas.slice():null,scores:S.players.map(p=>p.score)})}
+function apply(deltas){S.players.forEach((p,i)=>{p.score+=deltas[i]})}
+function advance(){S.kyoku++;if(S.kyoku>4){S.kyoku=1;S.roundWind++}}
+function showFlash(deltas){clearTimeout(flashT);flash=deltas;flashT=setTimeout(()=>{flash=null;render()},4000)}
+function afterHand(){
+  if(S.roundWind>lastWind()){S.ended=true;S.roundWind=lastWind();S.kyoku=4;log('반장 종료',null,'info')}
+  else if(S.settings.tobi&&S.players.some(p=>p.score<0)){S.ended=true;log('토비 종료',null,'info')}
+  save();render();
+  if(S.ended)openSettle();
+}
+function toast(msg){let t=$('.toast');if(!t){t=document.createElement('div');t.className='toast';document.body.appendChild(t)}t.textContent=msg;clearTimeout(toastT);toastT=setTimeout(()=>t.remove(),2200)}
+
+/* ---- core actions ---- */
+function doRiichi(i){
+  if(S.ended)return;
+  const p=S.players[i];
+  if(!p.riichi&&p.score<1000){toast('1000점 미만이라 리치를 걸 수 없습니다');return}
+  const d=[0,0,0,0];
+  if(p.riichi){p.riichi=false;p.score+=1000;S.kyotaku--;d[i]=1000;log(`${p.name} 리치 취소`,d,'riichi')}
+  else{p.riichi=true;p.score-=1000;S.kyotaku++;d[i]=-1000;log(`${p.name} 리치`,d,'riichi')}
+  save();render();
+}
+function computeWin(f,withK){
+  const d=dealer(),hb=S.honba,k=withK?S.kyotaku:0,deltas=[0,0,0,0];
+  if(f.winner==null)return{ok:false,deltas};
+  if(f.type==='ron'){
+    if(f.loser==null||f.loser===f.winner)return{ok:false,deltas};
+    const base=+f.base||0;if(base<=0)return{ok:false,deltas};
+    const amt=base+hb*300;deltas[f.winner]+=amt+k*1000;deltas[f.loser]-=amt;
+    return{ok:true,deltas,honba:hb*300,base:String(base)};
+  }
+  const a=+f.a||0,b=+f.b||0;
+  if(a<=0||(f.winner!==d&&b<=0))return{ok:false,deltas};
+  let total=0;
+  others(f.winner).forEach(o=>{const pay=(f.winner===d?a:(o===d?b:a))+hb*100;deltas[o]-=pay;total+=pay});
+  deltas[f.winner]+=total+k*1000;
+  return{ok:true,deltas,honba:hb*100*3,base:f.winner===d?a+' 올':a+' / '+b};
+}
+function computeHand(wins){
+  const deltas=[0,0,0,0];let ok=true;const parts=[];
+  wins.forEach(w=>{const r=computeWin(w,false);if(!r.ok){ok=false;return}r.deltas.forEach((v,i)=>deltas[i]+=v);parts.push(r)});
+  if(!ok||!wins.length)return{ok:false,deltas};
+  let rec=wins[0].winner;
+  if(wins.length>1){const L=wins[0].loser;rec=wins.map(w=>w.winner).sort((a,b)=>((a-L+4)%4)-((b-L+4)%4))[0]}
+  deltas[rec]+=S.kyotaku*1000;
+  return{ok:true,deltas,rec,kyotaku:S.kyotaku*1000,parts};
+}
+function doHand(wins){
+  const r=computeHand(wins);if(!r.ok){toast('입력이 완료되지 않았습니다');return false}
+  const d=dealer();apply(r.deltas);
+  const desc=wins.map(w=>`${name(w.winner)} ${w.type==='ron'?'론 ← '+name(w.loser):'쯔모'}${w.label?' · '+w.label:''}`).join(' + ');
+  log((wins.length===2?'더블론 · ':wins.length===3?'트리플론 · ':'')+desc,r.deltas,'hand');
+  S.kyotaku=0;S.players.forEach(p=>p.riichi=false);
+  if(wins.some(w=>w.winner===d))S.honba++;else{S.honba=0;advance()}
+  showFlash(r.deltas);afterHand();return true;
+}
+function doDraw(dr){
+  const d=dealer();const deltas=[0,0,0,0];
+  if(!dr.abortive){
+    const n=dr.tenpai.filter(Boolean).length;
+    if(n>0&&n<4){const gain=3000/n,loss=3000/(4-n);dr.tenpai.forEach((t,i)=>deltas[i]=t?gain:-loss)}
+    apply(deltas);
+    const tn=S.players.filter((p,i)=>dr.tenpai[i]).map(p=>p.name);
+    log(`유국 · ${tn.length?'텐파이 '+tn.join(', '):'전원 노텐'}`,deltas,'hand');
+    if(n>0&&n<4)showFlash(deltas);
+  }else log('도중 유국',null,'hand');
+  S.players.forEach(p=>p.riichi=false);
+  S.honba++;
+  if(!dr.abortive&&!dr.tenpai[d])advance();
+  afterHand();
+}
+
+/* ---- board render ---- */
+function stickSvg(kind,dim){
+  const dots=kind==='h'
+    ?[16.5,21.5,26.5,31.5].flatMap(x=>[3.2,6.8].map(y=>`<circle cx="${x}" cy="${y}" r="1.05" fill="#1a1a1a"/>`)).join('')
+    :`<circle cx="24" cy="5" r="2.1" fill="#E8553F"/>`;
+  return `<svg class="stk ${dim?'dim':''}" viewBox="0 0 48 10" aria-hidden="true"><rect x=".5" y=".5" width="47" height="9" rx="4.5" fill="#F4EFE3" stroke="#B9B1A0" stroke-width=".8"/>${dots}</svg>`;
+}
+function sticksHtml(){
+  const row=(n,kind,label)=>`<div class="stkrow" title="${label}">${stickSvg(kind,false)}<b>×${n}</b></div>`;
+  return `<div class="sticks">${row(S.honba,'h','본장 (백점봉)')}${row(S.kyotaku,'t','공탁 리치봉 (천점봉)')}</div>`;
+}
+function render(){
+  const d=dealer();
+  S.players.forEach((p,i)=>{
+    const el=document.querySelector(`.band.${POS_CLASS[posOf(i)]}`);el.dataset.seat=i;
+    el.classList.toggle('dealer',i===d);el.classList.toggle('riichi',p.riichi);
+    const fl=flash?flash[i]:0;
+    el.innerHTML=`<div class="card" data-act="pov" data-seat="${i}">
+      <div class="who"><span class="wind">${seatWind(i)}</span><span class="pname">${esc(p.name)}</span></div>
+      <div class="scorebox"><div class="score ${p.score<0?'neg':''}">${p.score}</div><div class="flash ${cls(fl)}">${fl?sgn(fl):''}</div>${fl?'':'<div class="tip">눌러서 점수 차 보기</div>'}</div>
+      <button class="rbtn ${p.riichi?'on':''}" data-act="riichi" data-seat="${i}" ${S.ended?'disabled':''} aria-label="리치"><span class="stick"></span><span>리치!</span></button>
+    </div>`;
+  });
+  const dk=$('#dock .dk-draw');if(dk)dk.disabled=!!S.ended;
+  const tag=S.ended?'<span class="tag hot">종료</span>':isOorasu()?'<span class="tag hot">오라스</span>':'';
+  $('#center').className='band center';
+  $('#center').innerHTML=`<div class="card"><div class="c-in">
+    <div class="pw">
+      ${POS_CLASS.map((pc,pos)=>{const i=(d+pos)%4;return`<button class="pwb ${pc}" data-act="win-for" data-seat="${i}" ${S.ended?'disabled':''}><span class="lab">화료<small>${esc(name(i))}</small></span></button>`}).join('')}
+      <div class="pwm">
+        <button class="pwm-top" data-act="draw" ${S.ended?'disabled':''}><span><i>유</i><i>국</i></span></button>
+        <button class="pwm-bot" data-act="menu" aria-label="메뉴"><span><i>메</i><i>뉴</i></span></button>
+        <div class="pwc" aria-live="polite">${tag}<div class="round">${WINDS[S.roundWind]}<b>${S.kyoku}</b>局</div>${sticksHtml()}</div>
+      </div>
+    </div>
+  </div></div>`;
+}
+
+/* ---- POV ---- */
+function openPov(i,hold){
+  povSeat=i;
+  const me=S.players[i];
+  const rel=[[(i+2)%4,'toimen','대면'],[(i+3)%4,'kami','상가'],[(i+1)%4,'shimo','하가']];
+  const rank=[0,1,2,3].sort((a,b)=>S.players[b].score-S.players[a].score||a-b).indexOf(i)+1;
+  const rot=SEAT_ROT[posOf(i)];setLayerRot(0);
+  const W=innerWidth,H=innerHeight;const sw=Math.abs(rot)===90;
+  const w=sw?H:W,h=sw?W:H;
+  const side=Math.min(w,h)-Math.round(Math.min(w,h)*0.06),cell=Math.floor(side/3);
+  const cells=rel.map(([j,c,l])=>{const df=me.score-S.players[j].score;return`<div class="pv ${c}"><span class="rel">${l}</span><span class="nm">${esc(name(j))}</span><span class="df ${cls(df)}">${df===0?'±0':sgn(df)}</span><span class="sc">${S.players[j].score}</span></div>`}).join('');
+  $('#layer').innerHTML=`<div class="pov" data-act="pov-close"><div class="pov-in" style="width:${w}px;height:${h}px;transform:translate(-50%,-50%) rotate(${rot}deg)">
+    <div class="pgrid" style="width:${side}px;height:${side}px;--cell:${cell}px">
+    ${cells}
+    <div class="pv mid"><span class="rk">${rank}<small>위</small></span><span class="rd">${WINDS[S.roundWind]}${S.kyoku}局${S.honba?' '+S.honba+'본장':''}</span>${hold?'':'<span class="hint">탭하면 닫힙니다</span>'}</div>
+    <div class="pv me"><span class="rel">${seatWind(i)} · 나</span><span class="nm">${esc(me.name)}</span><span class="df">${me.score}</span><span class="sc">${me.riichi?'리치 중':S.kyotaku?'공탁 '+S.kyotaku:'&nbsp;'}</span></div>
+    </div></div></div>`;
+}
+
+/* ---- layer helpers ---- */
+function closeLayer(){povSeat=null;chartState=null;$('#layer').innerHTML='';$('#layer').hidden=true;$('#layer').style.cssText='';F=null;D=null;M=null;if(S&&S.setup)openSetup()}
+function full(title,body,foot,opts={}){
+  setLayerRot(0);
+  const steps=opts.steps?`<div class="steps">${Array.from({length:opts.steps.n},(_,k)=>`<i class="${k<opts.steps.i?'on':''}"></i>`).join('')}</div>`:'';
+  const backBtn=opts.noClose?'':`<button class="back" data-act="${opts.back||'close'}" aria-label="뒤로">${opts.back&&opts.back!=='close'?'‹':'×'}</button>`;
+  const head=opts.center
+    ?`<div class="f-head center">${opts.noClose?'':`<button class="xbtn" data-act="${opts.closeAct||'close'}" aria-label="닫기">×</button>`}<div class="f-title">${title}</div></div>`
+    :`<div class="f-head">${backBtn}<div class="f-title">${title}</div>${opts.dialog?'':steps}</div>`;
+  let footHtml='';
+  if(opts.nav){const n=opts.nav;footHtml=`<div class="f-foot nav"><button class="nb" data-act="${n.prevAct||'w-back'}" ${n.prevDis?'disabled':''} aria-label="이전">‹</button>${foot?`<div class="navmid">${foot}</div>`:''}<button class="primary nav-next" data-act="${n.nextAct||'w-next'}" ${n.nextDis?'disabled':''}>${n.nextLabel||'다음'}</button></div>`}
+  else if(foot)footHtml=`<div class="f-foot ${opts.footCol?'col':''}">${foot}</div>`;
+  const inner=`<div class="full ${opts.dialog?'dlg':''} ${opts.small?'sm':''}">${head}${opts.q?`<div class="f-q ${opts.center?'center':''}">${opts.q}</div>`:''}<div class="f-body">${body}</div>${footHtml}</div>`;
+  $('#layer').innerHTML=opts.dialog?`<div class="dim">${inner}${steps?steps.replace('class="steps"','class="steps out"'):''}</div>`:inner;
+}
+let confirmCb=null,confirmCancelCb=null;
+function confirmDlg(title,text,okLabel,cb,danger,cancelCb){
+  confirmCb=cb;confirmCancelCb=cancelCb||null;
+  full(title,`<div class="dlg-text">${text}</div>`,`<button class="ghost" data-act="confirm-cancel">취소</button><button class="primary ${danger?'danger':''}" data-act="confirm-ok">${okLabel}</button>`,{dialog:true,small:true,noClose:true});
+}
+function askCloseWin(){
+  if(!F){closeLayer();return}
+  const dirty=F.winner!=null||F.pending.length>0;
+  if(!dirty){closeLayer();return}
+  confirmDlg('화료 입력 취소','지금까지 입력한 화료 내용이 사라집니다. 나갈까요?','나가기',()=>{F=null;closeLayer()},true,()=>renderWin());
+}
+
+/* ---- win wizard ---- */
+const STEPS=f=>f.pending.length?['winner','points','confirm']:(f.type==='tsumo'?['winner','type','points','confirm']:['winner','type','loser','points','confirm']);
+function openWin(){F={step:'winner',winner:null,type:null,loser:null,han:0,fu:30,limit:null,base:'',a:'',b:'',tab:'quick',pending:[]};renderWin()}
+function stepInfo(){const s=STEPS(F);const i=s.indexOf(F.step);return{n:s.length,i:i+1,prev:s[i-1]}}
+function basePoints(han,fu){if(han>=52)return 32000;if(han>=39)return 24000;if(han>=26)return 16000;if(han>=13)return 8000;if(han>=11)return 6000;if(han>=8)return 4000;if(han>=6)return 3000;if(han>=5)return 2000;return Math.min(fu*Math.pow(2,han+2),2000)}
+function autofill(){if(!F.han)return;const b=basePoints(F.han,F.fu),oya=isDealerWinner(F);if(F.type==='ron')F.base=oya?up100(b*6):up100(b*4);else if(oya){F.a=up100(b*2);F.b=''}else{F.a=up100(b);F.b=up100(b*2)}}
+function winLabel(){return F.han?(F.limit||`${F.han}판 ${F.fu}부`):''}
+function entryOf(){return{winner:F.winner,type:F.type,loser:F.loser,base:F.base,a:F.a,b:F.b,label:winLabel()}}
+function seatBtn(i,act,on,dis){return`<button class="bopt ${on?'on':''} ${i===dealer()?'dealer':''}" data-act="${act}" data-v="${i}" ${dis?'disabled':''}><span class="wind">${seatWind(i)}</span><span>${esc(name(i))}</span><span class="sub2">${S.players[i].score}</span></button>`}
+function renderWin(){
+  const si=stepInfo();const adding=F.pending.length>0;
+  const nav=(nextDis,extra)=>Object.assign({prevDis:!si.prev&&!adding,prevAct:si.prev?'w-back':'w-cancel-add',nextDis},extra||{});
+  const opts={steps:si,dialog:true,center:true,closeAct:'w-close'};
+  const title=adding?'화료 추가':'화료';
+  if(F.step==='winner'){
+    const taken=F.pending.map(w=>w.winner).concat(adding?[F.pending[0].loser]:[]);
+    full(title,`<div class="big c1">${[0,1,2,3].map(i=>seatBtn(i,'w-winner',F.winner===i,taken.includes(i))).join('')}</div>`,null,Object.assign(opts,{q:adding?`${esc(name(F.pending[0].loser))}에게서 추가로 화료한 사람은?`:'누가 화료했나요?',nav:nav(F.winner==null)}));
+  }else if(F.step==='type'){
+    full(title,`<div class="big c1" style="flex:1"><button class="bopt tall ${F.type==='ron'?'on':''}" data-act="w-type" data-v="ron">론<small>다른 사람의 버림패로</small></button><button class="bopt tall ${F.type==='tsumo'?'on':''}" data-act="w-type" data-v="tsumo">쯔모<small>직접 뽑아서</small></button></div>`,null,Object.assign(opts,{q:`<b class="qbig">${esc(name(F.winner))}의 화료<small>어떻게 났나요?</small></b>`,nav:nav(!F.type)}));
+  }else if(F.step==='loser'){
+    full(title,`<div class="big c1">${others(F.winner).map(i=>seatBtn(i,'w-loser',F.loser===i)).join('')}</div>`,null,Object.assign(opts,{q:'누가 쏘였나요?',nav:nav(F.loser==null)}));
+  }else if(F.step==='points'){
+    const oya=isDealerWinner(F);
+    let body=`<div class="seg"><button class="${F.tab==='quick'?'on':''}" data-act="w-tab" data-v="quick">빠른 선택</button><button class="${F.tab==='hanfu'?'on':''}" data-act="w-tab" data-v="hanfu">판 · 부</button></div>`;
+    if(F.tab==='quick'){
+      const selB=v=>!F.han&&+F.base===v?'on':'',selA=(a,b)=>!F.han&&+F.a===a&&(b==null||+F.b===b)?'on':'';
+      if(F.type==='ron')body+=`<div class="chips">${(oya?RON_OYA:RON_KO).map(v=>`<button class="chip ${selB(v)}" data-act="w-quick" data-v="${v}">${v}</button>`).join('')}</div>`;
+      else if(oya)body+=`<div class="lbl"><span>각자 지불</span></div><div class="chips">${TSUMO_OYA.map(v=>`<button class="chip ${selA(v)}" data-act="w-quick" data-v="${v}">${v}</button>`).join('')}</div>`;
+      else body+=`<div class="lbl"><span>子 / 親 지불</span></div><div class="chips" style="grid-template-columns:repeat(3,1fr)">${TSUMO_KO.map(([a,b])=>`<button class="chip ${selA(a,b)}" data-act="w-quick" data-v="${a}" data-b="${b}">${a}<small> / </small>${b}</button>`).join('')}</div>`;
+      body+=`<div class="note">본장 ${S.honba}개와 공탁 ${S.kyotaku}개는 다음 화면에서 자동으로 더해집니다.</div>`;
+    }else if(F.tab==='hanfu'){
+      const fuOn=F.han>0&&F.han<5;
+      body+=`<div class="lbl"><span>판</span></div><div class="chips hf">${[1,2,3,4].map(h=>`<button class="chip sm ${F.han===h&&!F.limit?'on':''}" data-act="w-han" data-v="${h}">${h}판</button>`).join('')}${LIMITS.map(([l,h])=>`<button class="chip sm ${F.limit===l?'on':''}" data-act="w-limit" data-v="${h}" data-l="${l}" style="font-family:var(--ui);font-weight:600">${l}</button>`).join('')}</div>`;
+      body+=`<div class="lbl"><span>부</span><span class="hint">${fuOn?'':'1~4판일 때만 고릅니다'}</span></div><div class="chips hf ${fuOn?'':'dimmed'}">${FUS.map(f=>`<button class="chip sm ${fuOn&&F.fu===f?'on':''}" data-act="w-fu" data-v="${f}" ${fuOn?'':'disabled'}>${f}부</button>`).join('')}</div>`;
+      const r=computeWin(F,false);
+      body+=`<div class="sum"><div class="li"><span class="k">${winLabel()||'판과 부를 고르세요'}</span><span class="v amber">${r.ok?r.base:'—'}</span></div></div>`;
+    }
+    const ok=computeWin(F,false).ok;
+    full(title,body,null,Object.assign(opts,{q:`<b class="qbig">${F.type==='ron'?esc(name(F.loser))+'<i>→</i>'+esc(name(F.winner))+' 론':'모두<i>→</i>'+esc(name(F.winner))+' 쯔모'}<small>${oya?'親 화료 · ':'子 화료 · '}기본 점수를 고르세요</small></b>`,nav:nav(!ok)}));
+  }else{
+    const wins=F.pending.concat([entryOf()]);const r=computeHand(wins);
+    const winRows=wins.map((w,k)=>`<div class="li"><span class="k">${esc(name(w.winner))} · ${w.type==='ron'?'론 ← '+esc(name(w.loser)):'쯔모'}${w.label?' · '+w.label:''}</span><span class="v n">${r.ok?r.parts[k].base:'—'}</span></div>`).join('');
+    const hbTotal=r.ok?r.parts.reduce((a,x)=>a+x.honba,0):0;
+    const rows=[0,1,2,3].map(i=>`<div class="li"><span class="k">${seatWind(i)} ${esc(name(i))}</span><span class="v n ${cls(r.deltas[i])}">${r.deltas[i]?sgn(r.deltas[i]):'-'}</span></div>`).join('');
+    const canAdd=F.type==='ron'&&wins.length<3;
+    const pays=[];const hb=S.honba,d0=dealer();
+    if(r.ok){wins.forEach(w=>{if(w.type==='ron')pays.push({from:[w.loser],to:w.winner,amt:(+w.base)+hb*300,label:hb?`본장 +${hb*300}`:''});
+      else{const g={};others(w.winner).forEach(o=>{const pay=(w.winner===d0?+w.a:(o===d0?+w.b:+w.a))+hb*100;(g[pay]=g[pay]||[]).push(o)});
+        Object.keys(g).map(Number).sort((a,b)=>b-a).forEach(pay=>pays.push({from:g[pay],to:w.winner,amt:pay,label:[g[pay].length>1?'각자':'',hb?`본장 +${hb*100}`:''].filter(Boolean).join(' · ')}))}});
+      if(S.kyotaku)pays.push({from:null,to:r.rec,amt:S.kyotaku*1000,label:`리치봉 ${S.kyotaku}개`})}
+    const payHtml=pays.map(p=>`<div class="pay ${p.from==null?'k':''}"><span class="from ${p.from&&p.from.length>1?'multi':''}">${p.from==null?'공탁':p.from.map(i=>esc(name(i))).join('<span class="dot">·</span>')}</span><span class="mid"><span class="amt"><b>${p.amt}</b><i>→</i></span>${p.label?`<small>${p.label}</small>`:''}</span><span class="to">${esc(name(p.to))}</span></div>`).join('');
+    full('확인',`<div class="pays">${payHtml}</div><div class="sum"><div class="li"><span class="k">국</span><span class="v">${roundLabel()}${wins.length===2?' · 더블론':wins.length===3?' · 트리플론':''}</span></div>${winRows}</div><div class="sum">${rows}</div>`,
+      canAdd?`<button class="ghost nowrap" data-act="w-add">${wins.length===1?'더블론':'트리플론'} 추가</button>`:'',Object.assign(opts,{q:`<b class="qbig">${wins.map(w=>esc(name(w.winner))).join(' · ')}의 화료<small>누가 누구에게 얼마를 주는지 확인하세요</small></b>`,nav:nav(!r.ok,{go:true,nextAct:'w-confirm',nextLabel:'확정'})}));
+  }
+}
+function goStep(s){F.step=s;renderWin()}
+function nextStep(){const st=STEPS(F);goStep(st[st.indexOf(F.step)+1])}
+
+/* ---- draw ---- */
+function openDraw(){D={tenpai:[false,false,false,false],abortive:false};renderDraw()}
+function renderDraw(){
+  const d=dealer(),n=D.tenpai.filter(Boolean).length;
+  let text;
+  if(D.abortive)text='점수 이동 없음 · 본장 +1 · 親 유지';
+  else if(n===0||n===4)text=`점수 이동 없음 · 본장 +1 · ${D.tenpai[d]?'親 유지':'親 이동'}`;
+  else text=`텐파이 ${sgn(3000/n)} · 노텐 ${sgn(-3000/(4-n))} · 본장 +1 · ${D.tenpai[d]?'親 유지':'親 이동'}`;
+  full('유국',`<div class="big c1">${[0,1,2,3].map(i=>seatBtn(i,'d-tenpai',D.tenpai[i],D.abortive)).join('')}</div>
+    <label class="check"><input type="checkbox" data-act="d-abortive" ${D.abortive?'checked':''}> 도중 유국 (구종구패 · 사풍연타 · 사가리치 · 사깡산료)</label>
+    <div class="sum"><div class="li"><span class="k">결과</span><span class="v">${text}</span></div></div>`,
+    `<button class="primary" data-act="d-confirm">확정</button>`,{q:'텐파이한 사람을 모두 고르세요',dialog:true,center:true});
+}
+
+/* ---- menu ---- */
+function openMenu(){
+  setLayerRot(0);
+  $('#layer').innerHTML=`<div class="overlay" data-act="close"><div class="menu">
+    <button class="mi" data-act="settle"><span class="ic">順</span><span class="t">${S.settings.finalCalc?'순위 · 최종 정산':'순위'}</span></button>
+    <button class="mi" data-act="log"><span class="ic">記</span><span class="t">기록 · 점수 그래프<span class="d">${S.log.length}건</span></span></button>
+    <button class="mi" data-act="settings"><span class="ic">設</span><span class="t">설정<span class="d">이름 · 규칙 · 현재 상황 수동 조정</span></span></button>
+    <button class="mi sep" data-act="exit"><span class="ic">出</span><span class="t">나가기<span class="d">게임을 끝내고 시작 화면으로</span></span></button>
+  </div></div>`;
+}
+
+/* ---- setup ---- */
+function ruleFields(attr,st){
+  const on=(v,c)=>v===c?'on':'';
+  return `
+    <div class="lbl"><span>길이</span></div><div class="seg"><button class="${on(st.length,'han')}" data-${attr}="length" data-v="han">반장 (東·南)</button><button class="${on(st.length,'ton')}" data-${attr}="length" data-v="ton">동풍전</button></div>
+    <label class="check" style="margin-top:10px"><input type="checkbox" data-${attr}c="finalCalc" ${st.finalCalc?'checked':''}> 최종 정산 점수 계산 (우마 · 오카)</label>
+    <div data-final-group ${st.finalCalc?'':'hidden'}>
+    <div class="lbl"><span>우마</span></div><div class="seg">${['none','5-10','10-20','10-30'].map(u=>`<button class="${on(st.uma,u)}" data-${attr}="uma" data-v="${u}">${u==='none'?'없음':u}</button>`).join('')}</div>
+    <div class="lbl"><span>반환점</span></div><div class="seg"><button class="${on(st.oka,30000)}" data-${attr}="oka" data-v="30000">30000</button><button class="${on(st.oka,25000)}" data-${attr}="oka" data-v="25000">25000 (오카 없음)</button></div>
+    </div>
+    <label class="check" style="margin-top:10px"><input type="checkbox" data-${attr}c="tobi" ${st.tobi?'checked':''}> 토비 (0점 미만이면 종료)</label>`;
+}
+function openSetup(){
+  if(!U)U={names:S.players.map((p,i)=>isDefaultName(p.name,i)?'':p.name),settings:Object.assign({},S.settings),order:[0,1,2,3]};
+  full('새 게임',`
+    ${playerRows('u',U.order,U.names)}
+    ${ruleFields('us',U.settings)}
+    <div class="note">모두 25000점으로 東1局부터 시작합니다. 이미 진행 중인 게임이면 현재 국·본장·점수를 직접 입력해 이어서 시작할 수 있습니다.</div>`,
+    `<button class="ghost" data-act="u-continue">진행 중인 게임 이어서</button><button class="primary" data-act="u-start">시작</button>`,{noClose:true});
+}
+function readSetup(){
+  const L=$('#layer');if(!U)return;
+  L.querySelectorAll('[data-u="name"]').forEach(inp=>{U.names[+inp.dataset.i]=inp.value.trim()});
+  L.querySelectorAll('[data-usc]').forEach(c=>{U.settings[c.dataset.usc]=c.checked});
+}
+function applySetup(){
+  readSetup();
+  const names=U.order.map(pi=>U.names[pi]||DEFAULT_NAMES[pi]);
+  S=newGame(names,Object.assign({},U.settings));S.setup=true;
+}
+
+/* ---- seat order (drag to reorder) ---- */
+function playerRows(attr,order,names){
+  return `<div class="lbl"><span>플레이어</span><span>≡ 를 끌어 자리 순서 바꾸기</span></div>
+  <div class="prow-wrap"><div class="windcol">${WINDS.map(w=>`<div class="windcell"><span class="wind">${w}</span></div>`).join('')}</div>
+  <div class="olist">${order.map((pi,pos)=>`<div class="orow" data-pi="${pi}"><input type="text" data-${attr}="name" data-i="${pi}" value="${esc(names[pi]||'')}" placeholder="${DEFAULT_NAMES[pi]}" maxlength="12" aria-label="플레이어 ${pi+1} 이름"><span class="grip" aria-label="순서 바꾸기">≡</span></div>`).join('')}</div></div>`;
+}
+function refreshOrderWinds(list){}
+let drag=null;
+document.addEventListener('pointerdown',e=>{
+  const grip=e.target.closest('.grip');if(!grip)return;const row=grip.closest('.orow');if(!row)return;
+  const list=row.parentElement;const rows=[...list.children];
+  try{grip.setPointerCapture(e.pointerId)}catch(_){}
+  drag={row,list,startY:e.clientY,rowH:row.getBoundingClientRect().height+6,idx:rows.indexOf(row),moved:0};
+  row.classList.add('drag');e.preventDefault();
+});
+document.addEventListener('pointermove',e=>{
+  if(!drag)return;
+  const dy=e.clientY-drag.startY;const rows=[...drag.list.children];const i=rows.indexOf(drag.row);
+  if(dy>drag.rowH*0.6&&i<rows.length-1){drag.list.insertBefore(rows[i+1],drag.row);drag.startY+=drag.rowH;drag.moved=dy-drag.rowH}
+  else if(dy<-drag.rowH*0.6&&i>0){drag.list.insertBefore(drag.row,rows[i-1]);drag.startY-=drag.rowH;drag.moved=dy+drag.rowH}
+  else drag.moved=dy;
+  drag.row.style.transform=`translateY(${drag.moved}px)`;
+  refreshOrderWinds(drag.list);
+});
+function endDrag(){
+  if(!drag)return;drag.row.style.transform='';drag.row.classList.remove('drag');
+  const order=[...drag.list.children].map(r=>+r.dataset.pi);
+  if(U&&$('#layer').querySelector('[data-u="name"]'))U.order=order;else if(M){M.order=order;syncStateRows()}
+  refreshOrderWinds(drag.list);drag=null;
+}
+document.addEventListener('pointerup',endDrag);document.addEventListener('pointercancel',endDrag);
+
+/* ---- state fields (shared by settings and continue-start) ---- */
+function stateFields(){
+  const seg=(k,vals,cur,fmt)=>`<div class="seg">${vals.map(v=>`<button class="${v===cur?'on':''}" data-m="${k}" data-v="${v}">${fmt(v)}</button>`).join('')}</div>`;
+  const stepper=(k,val,label)=>`<div class="lbl"><span>${label}</span></div><div class="stp"><button class="stp-b" data-act="m-step" data-k="${k}" data-d="-1">−</button><input type="number" inputmode="numeric" min="0" data-mi="${k}" value="${val}"><button class="stp-b" data-act="m-step" data-k="${k}" data-d="1">+</button></div>`;
+  return `
+    <div class="lbl"><span>장풍</span></div>${seg('roundWind',[0,1,2],S.roundWind,v=>WINDS[v]+'장')}
+    <div class="lbl"><span>국</span></div>${seg('kyoku',[1,2,3,4],S.kyoku,v=>v+'국')}
+    <div class="row2"><div>${stepper('honba',S.honba,'본장')}</div><div>${stepper('kyotaku',S.kyotaku,'공탁 리치봉')}</div></div>
+    <div class="lbl"><span>각자 점수</span><span id="mSum"></span></div>
+    <div class="mrows" data-staterows>${S.players.map((p,i)=>`<div class="mrow" data-row="${i}"><span class="wind ${((S.kyoku-1)%4)===i?'dl':''}">${WINDS[i]}</span><span class="mname" data-mname="${i}">${esc(p.name)}</span><input type="number" inputmode="numeric" step="100" data-mp="${i}" value="${p.score}"></div>`).join('')}</div>
+    <div class="note">붉은 배지가 선택한 국의 親입니다. 자리 순서는 게임 설정 탭의 순서를 따릅니다.</div>
+    <div class="note">한 명의 점수를 고치면 아직 손대지 않은 칸이 합계에 맞게 자동으로 채워집니다.</div>
+    ${S.ended?'<label class="check"><input type="checkbox" data-mi="reopen" checked> 종료 상태를 해제하고 계속 진행</label>':''}`;
+}
+function syncStateRows(){
+  const box=$('#layer') && $('#layer').querySelector('[data-staterows]');if(!box||!M)return;
+  const order=M.order||[0,1,2,3];const dpos=(M.kyoku-1)%4;
+  order.forEach((pi,pos)=>{const row=box.querySelector(`.mrow[data-row="${pi}"]`);if(!row)return;box.appendChild(row);const w=row.querySelector('.wind');w.textContent=WINDS[pos];w.classList.toggle('dl',pos===dpos);
+    const nm=$('#layer').querySelector(`[data-s="name"][data-i="${pi}"]`);if(nm){row.querySelector('.mname').textContent=nm.value.trim()||DEFAULT_NAMES[pi]}});
+}
+function initM(){M={roundWind:S.roundWind,kyoku:S.kyoku,settings:Object.assign({},S.settings),locked:new Set(),order:[0,1,2,3]}}
+function updateManualSum(){
+  const L=$('#layer');const el=L.querySelector('#mSum');if(!el)return;
+  const inputs=[...L.querySelectorAll('[data-mp]')];
+  const k=+(L.querySelector('[data-mi="kyotaku"]')||{value:0}).value||0;
+  if(M&&M.locked&&M.locked.size>0&&M.locked.size<4){
+    const free=inputs.filter(inp=>!M.locked.has(+inp.dataset.mp));
+    let rest=S.settings.start*4-k*1000;inputs.forEach(inp=>{if(M.locked.has(+inp.dataset.mp))rest-=(+inp.value||0)});
+    const each=Math.floor(rest/free.length/100)*100;
+    free.forEach((inp,i)=>{inp.value=i===free.length-1?rest-each*(free.length-1):each;inp.classList.add('auto')});
+  }
+  let sum=0;inputs.forEach(inp=>sum+=(+inp.value||0));
+  const total=sum+k*1000,expect=S.settings.start*4;
+  el.innerHTML=total===expect?`합계 ${total} ✓`:`<span style="color:var(--red)">합계 ${total} (기준 ${expect}, 차이 ${sgn(total-expect)})</span>`;
+  const btn=L.querySelector('[data-act="c-start"],[data-act="settings-save"]');
+  if(btn){const bad=total!==expect;btn.classList.toggle('warn',bad);const base=btn.dataset.act==='c-start'?'이 상황으로 시작':'저장';btn.textContent=bad?`합계 ${sgn(total-expect)} · 그래도 ${base}`:base}
+}
+function applyStateFields(){
+  const L=$('#layer');const before=S.players.map(p=>p.score);
+  const stateBefore=JSON.stringify([S.roundWind,S.kyoku,S.honba,S.kyotaku,before]);
+  S.roundWind=M.roundWind;S.kyoku=M.kyoku;
+  S.honba=Math.max(0,+(L.querySelector('[data-mi="honba"]').value)||0);
+  S.kyotaku=Math.max(0,+(L.querySelector('[data-mi="kyotaku"]').value)||0);
+  L.querySelectorAll('[data-mp]').forEach(inp=>{const i=+inp.dataset.mp;S.players[i].score=Math.round((+inp.value||0)/100)*100});
+  const ro=L.querySelector('[data-mi="reopen"]');if(S.ended&&ro&&ro.checked)S.ended=false;
+  const changed=stateBefore!==JSON.stringify([S.roundWind,S.kyoku,S.honba,S.kyotaku,S.players.map(p=>p.score)]);
+  return{changed,deltas:S.players.map((p,i)=>p.score-before[i])};
+}
+function openContinue(){
+  full('진행 중인 게임 이어서',stateFields()+`<div class="note">입력한 상황 그대로 게임을 시작합니다. 합계가 맞지 않아도 시작할 수 있습니다.</div>`,
+    `<button class="primary" data-act="c-start">이 상황으로 시작</button>`,{back:'setup'});
+  initM();updateManualSum();
+}
+let settingsTab='game';
+function openSettings(){
+  full('설정',`
+    <div class="seg tabs"><button class="${settingsTab==='game'?'on':''}" data-tab="game">게임 설정</button><button class="${settingsTab==='state'?'on':''}" data-tab="state">현재 상태</button></div>
+    <div data-pane="game" ${settingsTab==='game'?'':'hidden'}>
+      ${playerRows('s',[0,1,2,3],S.players.map(p=>p.name))}
+      ${ruleFields('set',S.settings)}
+      <div class="f-foot" style="padding:16px 0 0"><button class="ghost" data-act="restart">재시작</button></div>
+    </div>
+    <div data-pane="state" ${settingsTab==='state'?'':'hidden'}>
+      ${stateFields()}
+      <div class="note">규칙 계산 없이 입력한 값 그대로 반영됩니다.</div>
+    </div>`,
+    `<button class="primary" data-act="settings-save">저장</button>`,{});
+  initM();updateManualSum();
+}
+function saveSettings(){
+  const L=$('#layer');
+  L.querySelectorAll('[data-s="name"]').forEach(inp=>{const v=inp.value.trim();if(v)S.players[+inp.dataset.i].name=v});
+  L.querySelectorAll('[data-setc]').forEach(c=>{M.settings[c.dataset.setc]=c.checked});
+  Object.assign(S.settings,M.settings);
+  const r=applyStateFields();
+  const reordered=M.order.some((pi,pos)=>pi!==pos);
+  if(reordered){S.players=M.order.map(pi=>S.players[pi]);log(`자리 변경 · ${S.players.map((p,i)=>WINDS[i]+' '+p.name).join(' · ')}`,null,'manual')}
+  if(r.changed)log(`수동 조정 · ${S.players.map(p=>p.score).join(' / ')}`,r.deltas.some(x=>x)?r.deltas:null,'manual');
+  flash=null;save();render();closeLayer();toast('저장했습니다');
+}
+
+/* ---- ranking ---- */
+function settle(){
+  const {start,oka,uma}=S.settings;const U2=UMA[uma]||UMA.none;
+  const idx=[0,1,2,3].sort((a,b)=>S.players[b].score-S.players[a].score||a-b);
+  return idx.map((i,r)=>{let pts=(S.players[i].score-oka)/1000+U2[r];if(r===0)pts+=(oka-start)*4/1000;return{i,rank:r+1,score:S.players[i].score,pts}});
+}
+function openSettle(){
+  const rows=settle();const fc=S.settings.finalCalc;
+  full(S.ended?(fc?'최종 정산':'최종 순위'):'현재 순위',`<table class="tbl"><thead><tr><th>순위</th><th>점수</th>${fc?'<th>정산</th>':''}</tr></thead><tbody>
+    ${rows.map(r=>`<tr><td><span class="rank ${r.rank===1?'top':''}">${r.rank}</span>${esc(name(r.i))}</td><td>${r.score}</td>${fc?`<td class="${r.pts>0?'up':r.pts<0?'down':''}">${r.pts>0?'+':''}${r.pts.toFixed(1)}</td>`:''}</tr>`).join('')}
+    </tbody></table>
+    <div class="note">${fc?`반환점 ${S.settings.oka} · 우마 ${S.settings.uma==='none'?'없음':S.settings.uma} · 소수점 처리 없음.`:'최종 정산 점수는 계산하지 않도록 설정되어 있습니다.'}${S.kyotaku?` 공탁 ${S.kyotaku*1000}점은 포함되지 않았습니다.`:''}</div>`,
+    S.ended?`<button class="ghost" data-act="restart">재시작</button><button class="primary" data-act="close">닫기</button>`:null,{});
+}
+
+/* ---- log + chart ---- */
+function chartSeries(){
+  const pts=[];const startScores=S.players.map(()=>S.settings.start);
+  const first=S.log[0];
+  if(first&&first.kind==='start'){pts.push({label:'시작',scores:first.scores})}else pts.push({label:'시작',scores:startScores});
+  S.log.forEach(e=>{if(e.kind==='hand'||e.kind==='manual')pts.push({label:e.sr,scores:e.scores})});
+  return pts;
+}
+function drawChart(cv,pts,hover){
+  const dpr=Math.min(2,window.devicePixelRatio||1);
+  const w=cv.clientWidth||600,h=Math.round(Math.min(320,Math.max(200,w*0.5)));
+  cv.width=Math.round(w*dpr);cv.height=Math.round(h*dpr);cv.style.height=h+'px';
+  const ctx=cv.getContext('2d');ctx.setTransform(dpr,0,0,dpr,0,0);
+  ctx.clearRect(0,0,w,h);
+  paintChart(ctx,w,h,pts,hover);
+  return h;
+}
+function paintChart(ctx,w,h,pts,hover,bg){
+  const padL=44,padR=64,padT=14,padB=28;
+  if(bg){ctx.fillStyle=bg;ctx.fillRect(0,0,w,h)}
+  const all=pts.flatMap(p=>p.scores);let lo=Math.min(...all),hi=Math.max(...all);
+  const step=(hi-lo)>40000?10000:5000;lo=Math.floor(lo/step)*step;hi=Math.ceil(hi/step)*step;if(hi===lo)hi=lo+step;
+  const n=pts.length;const x=i=>padL+(n>1?(w-padL-padR)*i/(n-1):(w-padL-padR)/2);const y=v=>padT+(h-padT-padB)*(1-(v-lo)/(hi-lo));
+  ctx.font='12px "IBM Plex Sans KR",system-ui,sans-serif';ctx.textBaseline='middle';
+  for(let v=lo;v<=hi;v+=step){ctx.strokeStyle='rgba(185,194,187,.14)';ctx.lineWidth=1;ctx.beginPath();ctx.moveTo(padL,y(v));ctx.lineTo(w-padR,y(v));ctx.stroke();ctx.fillStyle='#7F908A';ctx.textAlign='right';ctx.fillText(String(v/1000)+'k',padL-8,y(v))}
+  const s0=S.settings.start;if(s0>lo&&s0<hi){ctx.setLineDash([3,4]);ctx.strokeStyle='rgba(236,230,214,.35)';ctx.beginPath();ctx.moveTo(padL,y(s0));ctx.lineTo(w-padR,y(s0));ctx.stroke();ctx.setLineDash([])}
+  ctx.textAlign='center';ctx.fillStyle='#7F908A';const every=Math.max(1,Math.ceil(n/8));
+  pts.forEach((p,i)=>{if(i%every===0||i===n-1)ctx.fillText(p.label,x(i),h-padB/2)});
+  if(hover!=null){ctx.strokeStyle='rgba(236,230,214,.35)';ctx.lineWidth=1;ctx.beginPath();ctx.moveTo(x(hover),padT);ctx.lineTo(x(hover),h-padB);ctx.stroke()}
+  S.players.forEach((p,k)=>{
+    ctx.strokeStyle=SERIES[k];ctx.lineWidth=2;ctx.lineJoin='round';ctx.beginPath();
+    pts.forEach((pt,i)=>{i?ctx.lineTo(x(i),y(pt.scores[k])):ctx.moveTo(x(i),y(pt.scores[k]))});ctx.stroke();
+    const li=n-1;ctx.fillStyle=SERIES[k];ctx.beginPath();ctx.arc(x(li),y(pts[li].scores[k]),4,0,Math.PI*2);ctx.fill();
+    ctx.strokeStyle=bg||'#182220';ctx.lineWidth=2;ctx.stroke();
+  });
+  // direct labels at line ends, nudged apart
+  const ends=S.players.map((p,k)=>({k,y:y(pts[n-1].scores[k])})).sort((a,b)=>a.y-b.y);
+  for(let i=1;i<ends.length;i++)if(ends[i].y-ends[i-1].y<14)ends[i].y=ends[i-1].y+14;
+  ctx.textAlign='left';ctx.font='600 12px "IBM Plex Sans KR",system-ui,sans-serif';
+  ends.forEach(e=>{ctx.fillStyle='#ECE6D6';ctx.fillText(S.players[e.k].name.slice(0,6),w-padR+10,e.y)});
+  if(hover!=null){
+    const pt=pts[hover];const bw=132,bh=18*4+26;let bx=x(hover)+10;if(bx+bw>w-padR)bx=x(hover)-bw-10;const by=padT+4;
+    ctx.fillStyle='rgba(15,21,19,.94)';ctx.strokeStyle='rgba(59,82,76,1)';ctx.lineWidth=1;
+    ctx.beginPath();ctx.roundRect?ctx.roundRect(bx,by,bw,bh,8):ctx.rect(bx,by,bw,bh);ctx.fill();ctx.stroke();
+    ctx.fillStyle='#7F908A';ctx.font='12px "IBM Plex Sans KR",system-ui,sans-serif';ctx.textAlign='left';ctx.fillText(pt.label,bx+10,by+13);
+    S.players.forEach((p,k)=>{const yy=by+30+k*18;ctx.fillStyle=SERIES[k];ctx.beginPath();ctx.arc(bx+13,yy,4,0,Math.PI*2);ctx.fill();ctx.fillStyle='#ECE6D6';ctx.textAlign='left';ctx.fillText(p.name.slice(0,5),bx+22,yy);ctx.textAlign='right';ctx.font='600 12px Rajdhani,"IBM Plex Sans KR",sans-serif';ctx.fillText(String(pt.scores[k]),bx+bw-10,yy);ctx.font='12px "IBM Plex Sans KR",system-ui,sans-serif'});
+  }
+  return{x,padL,padR,n};
+}
+function openLog(){
+  const pts=chartSeries();
+  const rows=S.log.length?S.log.slice().reverse().map(e=>`<div class="lrow"><span class="r">${e.round}</span><span>${esc(e.text)}</span>${e.deltas?`<span class="d">${e.deltas.map(v=>`<span class="${v>0?'up':v<0?'down':''}">${v?sgn(v):'-'}</span>`).join('')}</span>`:''}</div>`).join(''):'<div class="note">아직 기록이 없습니다.</div>';
+  full('기록',`<div class="chart-wrap"><canvas id="chart"></canvas><div class="lg">${S.players.map((p,k)=>`<span><i style="background:${SERIES[k]}"></i>${esc(p.name)}</span>`).join('')}</div></div>
+    <div class="f-foot" style="padding:0"><button class="ghost" data-act="log-img">이미지로 저장</button></div>
+    <div>${rows}</div>`,null,{});
+  const cv=$('#chart');chartState={pts,hover:null};
+  requestAnimationFrame(()=>drawChart(cv,pts,null));
+  const pick=e=>{const r=cv.getBoundingClientRect();const w=r.width;const {padL,padR,n}=paintGeom(w);const rel=(e.clientX-r.left-padL)/(w-padL-padR);const i=Math.max(0,Math.min(n-1,Math.round(rel*(n-1))));if(chartState.hover!==i){chartState.hover=i;drawChart(cv,pts,i)}};
+  const paintGeom=w=>({padL:44,padR:64,n:pts.length});
+  cv.addEventListener('pointerdown',pick);cv.addEventListener('pointermove',e=>{if(e.pointerType==='mouse'||e.buttons)pick(e)});
+  cv.addEventListener('pointerleave',()=>{if(chartState){chartState.hover=null;drawChart(cv,pts,null)}});
+}
+async function exportImage(){
+  const pts=chartSeries();const W=1200,H=760,dpr=2;
+  const cv=document.createElement('canvas');cv.width=W*dpr;cv.height=H*dpr;const ctx=cv.getContext('2d');ctx.setTransform(dpr,0,0,dpr,0,0);
+  ctx.fillStyle='#0F1513';ctx.fillRect(0,0,W,H);
+  ctx.fillStyle='#ECE6D6';ctx.font='600 26px "IBM Plex Sans KR",system-ui,sans-serif';ctx.textBaseline='middle';ctx.textAlign='left';
+  const dt=new Date(S.started||Date.now());const ds=`${dt.getFullYear()}.${String(dt.getMonth()+1).padStart(2,'0')}.${String(dt.getDate()).padStart(2,'0')}`;
+  ctx.fillText('리치 점봉판 · 점수 변동',40,40);ctx.fillStyle='#7F908A';ctx.font='16px "IBM Plex Sans KR",system-ui,sans-serif';ctx.textAlign='right';ctx.fillText(`${ds} · ${S.settings.length==='ton'?'동풍전':'반장'} · ${S.ended?'종료':roundLabel()}`,W-40,40);
+  ctx.save();ctx.translate(40,70);paintChart(ctx,W-80,420,pts,null,'#182220');ctx.restore();
+  const rows=settle();const fc=S.settings.finalCalc;const y0=520;
+  ctx.textAlign='left';ctx.font='13px "IBM Plex Sans KR",system-ui,sans-serif';ctx.fillStyle='#7F908A';ctx.fillText('순위',40,y0);ctx.textAlign='right';ctx.fillText('점수',fc?W-260:W-40,y0);if(fc)ctx.fillText('정산',W-40,y0);
+  rows.forEach((r,i)=>{const yy=y0+34+i*46;ctx.strokeStyle='rgba(185,194,187,.15)';ctx.beginPath();ctx.moveTo(40,yy+22);ctx.lineTo(W-40,yy+22);ctx.stroke();
+    ctx.fillStyle=SERIES[r.i];ctx.beginPath();ctx.arc(52,yy,7,0,Math.PI*2);ctx.fill();
+    ctx.fillStyle='#ECE6D6';ctx.textAlign='left';ctx.font='600 20px "IBM Plex Sans KR",system-ui,sans-serif';ctx.fillText(`${r.rank}위  ${name(r.i)}`,72,yy);
+    ctx.font='700 26px Rajdhani,"IBM Plex Sans KR",sans-serif';ctx.textAlign='right';ctx.fillStyle='#F5B342';ctx.fillText(String(r.score),fc?W-260:W-40,yy);
+    if(fc){ctx.fillStyle=r.pts>0?'#4CB98A':r.pts<0?'#E8553F':'#7F908A';ctx.fillText((r.pts>0?'+':'')+r.pts.toFixed(1),W-40,yy)}});
+  const url=cv.toDataURL('image/png');
+  try{
+    if(navigator.canShare){const blob=await (await fetch(url)).blob();const file=new File([blob],'riichi-score.png',{type:'image/png'});if(navigator.canShare({files:[file]})){await navigator.share({files:[file],title:'리치 점봉판'});return}}
+  }catch(e){}
+  full('이미지로 저장',`<div class="imgview"><img src="${url}" alt="점수 변동 그래프와 순위"><div class="note">이미지를 길게 눌러 저장하거나 복사하세요.</div></div>`,`<button class="primary" data-act="log">기록으로 돌아가기</button>`,{});
+}
+
+/* ---- events ---- */
+document.addEventListener('click',e=>{
+  const b=e.target.closest('[data-act],[data-set],[data-m],[data-us],[data-tab]');
+  if(!b)return;
+  const segOn=()=>b.parentElement.querySelectorAll('button').forEach(x=>x.classList.toggle('on',x===b));
+  if(b.dataset.tab){settingsTab=b.dataset.tab;b.parentElement.querySelectorAll('button').forEach(x=>x.classList.toggle('on',x===b));$('#layer').querySelectorAll('[data-pane]').forEach(pn=>pn.hidden=pn.dataset.pane!==settingsTab);return}
+  if(b.dataset.us&&b.tagName==='BUTTON'&&U){const k=b.dataset.us;U.settings[k]=k==='oka'?+b.dataset.v:b.dataset.v;segOn();return}
+  if(b.dataset.m&&b.tagName==='BUTTON'&&M){const k=b.dataset.m;M[k]=+b.dataset.v;segOn();syncStateRows();return}
+  if(b.dataset.set&&b.tagName==='BUTTON'&&M){const k=b.dataset.set;M.settings[k]=k==='oka'?+b.dataset.v:b.dataset.v;segOn();return}
+  const act=b.dataset.act;if(!act)return;
+  const v=b.dataset.v!==undefined?+b.dataset.v:null;
+  const seat=b.dataset.seat!==undefined?+b.dataset.seat:null;
+  switch(act){
+    case 'riichi':e.stopPropagation();doRiichi(seat);break;
+    case 'pov':break;
+    case 'pov-close':closeLayer();break;
+    case 'menu':openMenu();break;
+    case 'close':if(b.classList.contains('overlay')&&e.target!==b)break;closeLayer();break;
+    case 'confirm-ok':{const cb=confirmCb;confirmCb=null;confirmCancelCb=null;closeLayer();if(cb)cb()}break;
+    case 'confirm-cancel':{const cc=confirmCancelCb;confirmCb=null;confirmCancelCb=null;if(cc)cc();else closeLayer()}break;
+    case 'w-close':askCloseWin();break;
+    case 'win':openWin();break;
+    case 'win-for':break;
+    case 'w-back':goStep(stepInfo().prev);break;
+    case 'w-cancel-add':{const last=F.pending.pop();Object.assign(F,last);F.han=0;F.limit=null;F.step='confirm';renderWin()}break;
+    case 'w-winner':F.winner=v;if(F.pending.length){F.type='ron';F.loser=F.pending[0].loser}else if(F.loser===v)F.loser=null;nextStep();break;
+    case 'w-type':F.type=b.dataset.v;autofill();nextStep();break;
+    case 'w-loser':F.loser=v;nextStep();break;
+    case 'w-tab':F.tab=b.dataset.v;renderWin();break;
+    case 'w-quick':F.han=0;F.limit=null;if(F.type==='ron')F.base=v;else{F.a=v;F.b=b.dataset.b?+b.dataset.b:''}renderWin();break;
+    case 'w-han':F.han=v;F.limit=null;autofill();renderWin();break;
+    case 'w-limit':F.han=v;F.limit=b.dataset.l;autofill();renderWin();break;
+    case 'w-fu':F.fu=v;F.limit=null;autofill();renderWin();break;
+    case 'w-next':if(computeWin(F,false).ok)nextStep();break;
+    case 'w-add':{F.pending.push(entryOf());F.winner=null;F.han=0;F.limit=null;F.base='';F.a='';F.b='';F.tab='quick';F.type='ron';F.loser=F.pending[0].loser;
+      const taken=F.pending.map(w=>w.winner).concat([F.loser]);const rest=[0,1,2,3].filter(i=>!taken.includes(i));
+      if(rest.length===1){F.winner=rest[0];F.step='points'}else F.step='winner';renderWin()}break;
+    case 'w-confirm':{const wins=F.pending.concat([entryOf()]);if(doHand(wins)&&!S.ended)closeLayer()}break;
+    case 'draw':openDraw();break;
+    case 'd-tenpai':D.tenpai[v]=!D.tenpai[v];renderDraw();break;
+    case 'd-confirm':{const dr=D;closeLayer();doDraw(dr)}break;
+    case 'settle':openSettle();break;
+    case 'log':openLog();break;
+    case 'log-img':exportImage();break;
+    case 'm-step':{const inp=$('#layer').querySelector(`[data-mi="${b.dataset.k}"]`);inp.value=Math.max(0,(+inp.value||0)+(+b.dataset.d));updateManualSum()}break;
+    case 'settings':openSettings();break;
+    case 'settings-save':saveSettings();break;
+    case 'restart':confirmDlg('재시작','같은 이름과 규칙으로 모두 25000점, 東1局부터 다시 시작합니다. 현재 기록은 사라집니다.','재시작',()=>{const names=S.players.map(p=>p.name);S=newGame(names,Object.assign({},S.settings));flash=null;save();render();toast('다시 시작했습니다')},true);break;
+    case 'exit':confirmDlg('나가기','게임을 끝내고 시작 화면으로 돌아갑니다. 현재 진행 상황과 기록은 사라집니다.','나가기',()=>{const names=S.players.map(p=>p.name);const st=Object.assign({},S.settings);S=newGame(names,st);S.setup=true;U={names:names.slice(),settings:st};flash=null;save();render();openSetup()},true);break;
+    case 'setup':readSetup();openSetup();break;
+    case 'u-start':applySetup();S.setup=false;U=null;save();render();closeLayer();toast('게임을 시작했습니다');break;
+    case 'u-continue':applySetup();save();render();openContinue();break;
+    case 'c-start':{applyStateFields();S.setup=false;U=null;S.log=[];log(`진행 중인 게임에서 시작 · ${S.players.map(p=>p.score).join(' / ')}`,null,'start');flash=null;save();render();closeLayer();toast('게임을 시작했습니다')}break;
+  }
+});
+document.addEventListener('input',e=>{
+  const t=e.target;
+  if(t.dataset.mp!==undefined){if(M&&M.locked){M.locked.add(+t.dataset.mp);t.classList.remove('auto')}updateManualSum();return}
+  if(t.dataset.mi==='kyotaku'){updateManualSum();return}
+  if(t.dataset.s==='name'){syncStateRows();return}
+
+});
+document.addEventListener('change',e=>{
+  const t=e.target;
+  if(D&&t.dataset.act==='d-abortive'){D.abortive=t.checked;renderDraw()}
+  if(t.dataset.usc==='finalCalc'||t.dataset.setc==='finalCalc'){const g=$('#layer').querySelector('[data-final-group]');if(g)g.hidden=!t.checked}
+});
+/* drag from a 화료 bar: the screen dims and big drop zones appear — another player = ron on them, the center = tsumo */
+let wdrag=null;
+function wdragTarget(x,y){
+  const el=document.elementFromPoint(x,y);if(!el)return null;
+  const z=el.closest('.wzone');if(!z)return null;
+  const k=z.dataset.kind;
+  return k==='ron'?{kind:'ron',seat:+z.dataset.seat,el:z}:{kind:k,el:z};
+}
+document.addEventListener('pointerdown',e=>{
+  const bar=e.target.closest('.pwb');if(!bar||bar.disabled||S.ended)return;
+  if(e.pointerType==='mouse'&&e.button!==0)return;
+  e.preventDefault();
+  wdrag={seat:+bar.dataset.seat,bar,x0:e.clientX,y0:e.clientY,active:false,hov:null,timer:setTimeout(()=>startWdrag(),260)};
+});
+function startWdrag(){
+  if(!wdrag||wdrag.active)return;wdrag.active=true;
+  const ov=document.createElement('div');ov.className='wover';const ROT=SEAT_ROT[posOf(wdrag.seat)];
+  const B=document.querySelector('.board').getBoundingClientRect();const cell=B.width/3;const IN=Math.max(5,Math.round(cell*0.035));
+  const cellRect=(cx,cy,cw=1,chh=1)=>({left:B.left+cx*cell,top:B.top+cy*cell,width:cell*cw,height:cell*chh});
+  const CELL={top:[0,0,2,1],right:[2,0,1,2],bottom:[1,2,2,1],left:[0,1,1,2]};
+  const zone=(rect,cls,kind,seat,html)=>{const z=document.createElement('div');z.className='wzone '+cls;z.dataset.kind=kind;if(seat!=null)z.dataset.seat=seat;z.style.left=(rect.left+IN)+'px';z.style.top=(rect.top+IN)+'px';z.style.width=(rect.width-IN*2)+'px';z.style.height=(rect.height-IN*2)+'px';z.innerHTML=`<div class="zl" style="transform:rotate(${ROT}deg)">${html}</div>`;ov.appendChild(z)};
+  S.players.forEach((p,i)=>{
+    const pc=POS_CLASS[posOf(i)],r=cellRect(...CELL[pc]);
+    if(i===wdrag.seat)zone(r,'me '+pc,'tsumo',i,`<b>쯔모</b><span>${esc(p.name)} 본인</span>`);
+    else zone(r,pc,'ron',i,`<b>론</b><span>${esc(p.name)} 방총</span>`);
+  });
+  zone(cellRect(1,1),'center','manual',null,`<b>직접 설정</b><span>단계별 입력</span>`);
+  document.body.appendChild(ov);wdrag.over=ov;
+  const g=document.createElement('div');g.className='dghost';g.textContent=`${name(wdrag.seat)} 화료`;g.style.transform=`translate(-50%,-50%) rotate(${ROT}deg) translateY(-160%)`;document.body.appendChild(g);wdrag.ghost=g;
+  moveGhost(wdrag.x0,wdrag.y0);
+  if(navigator.vibrate)navigator.vibrate(10);
+}
+function moveGhost(x,y){if(wdrag&&wdrag.ghost){wdrag.ghost.style.left=x+'px';wdrag.ghost.style.top=y+'px'}}
+document.addEventListener('pointermove',e=>{
+  if(!wdrag)return;
+  if(!wdrag.active&&Math.hypot(e.clientX-wdrag.x0,e.clientY-wdrag.y0)>10){clearTimeout(wdrag.timer);startWdrag()}
+  if(!wdrag.active)return;
+  moveGhost(e.clientX,e.clientY);
+  const t=wdragTarget(e.clientX,e.clientY);const el=t?t.el:null;
+  if(el!==wdrag.hov){if(wdrag.hov)wdrag.hov.classList.remove('hov');if(el){el.classList.add('hov');if(navigator.vibrate)navigator.vibrate(6)}wdrag.hov=el}
+});
+function endWdrag(e){
+  if(!wdrag)return;clearTimeout(wdrag.timer);const w=wdrag;wdrag=null;
+  const t=(w.active&&e.type==='pointerup')?wdragTarget(e.clientX,e.clientY):null;
+  if(w.ghost)w.ghost.remove();if(w.over)w.over.remove();
+  if(e.type!=='pointerup')return;
+  if(!w.active){openWin();F.winner=w.seat;F.step='type';renderWin();return}
+  if(!t)return;
+  openWin();F.winner=w.seat;
+  if(t.kind==='manual'){F.step='type';renderWin();return}
+  if(t.kind==='ron'){F.type='ron';F.loser=t.seat}else{F.type='tsumo'}
+  F.step='points';renderWin();
+}
+document.addEventListener('pointerup',endWdrag);document.addEventListener('pointercancel',endWdrag);
+addEventListener('blur',()=>{endWdrag({type:'blur'})});document.addEventListener('visibilitychange',()=>{if(document.hidden)endWdrag({type:'hide'})});
+document.addEventListener('contextmenu',e=>{if(e.target.closest('.pwb'))e.preventDefault()});
+
+/* press on a seat: short tap toggles the view, holding shows it until release */
+document.addEventListener('pointerdown',e=>{
+  const card=e.target.closest('.seat .card');
+  if(!card||e.target.closest('[data-act="riichi"]')||(e.pointerType==='mouse'&&e.button!==0))return;
+  if(press){clearTimeout(press.timer)}
+  const seat=+card.dataset.seat;
+  try{card.setPointerCapture(e.pointerId)}catch(_){}
+  press={seat,held:false,timer:setTimeout(()=>{if(press){press.held=true;openPov(seat,true)}},HOLD_MS)};
+});
+function endPress(e){
+  if(!press)return;clearTimeout(press.timer);const p=press;press=null;
+  if(p.held){if(povSeat===p.seat)closeLayer();return}
+  if(e.type!=='pointerup')return;
+  if(povSeat===p.seat)closeLayer();else openPov(p.seat,false);
+}
+document.addEventListener('pointerup',endPress);
+document.addEventListener('pointercancel',endPress);
+document.addEventListener('contextmenu',e=>{if(e.target.closest('.seat .card'))e.preventDefault()});
+document.addEventListener('keydown',e=>{if(e.key==='Escape'&&$('#layer').innerHTML&&!(S&&S.setup)){if(F&&!confirmCb)askCloseWin();else if(!confirmCb)closeLayer()}});
+addEventListener('resize',()=>{if($('#layer').innerHTML)setLayerRot(povSeat!=null?SEAT_ROT[posOf(povSeat)]:0);if(chartState&&$('#chart'))drawChart($('#chart'),chartState.pts,chartState.hover)});
+
+/* ---- init ---- */
+S=load();
+if(!S){S=newGame(DEFAULT_NAMES.slice(),defaultSettings());S.setup=true}
+render();
+if(S.setup)openSetup();
+})();
+</script>
