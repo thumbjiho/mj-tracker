@@ -1,7 +1,8 @@
 "use client";
 
 import { useState } from "react";
-import { ConfirmDialog, Sheet } from "@/components/design-system/Sheet";
+import { ConfirmDialog } from "@/components/chrome/ConfirmDialog";
+import { useEscapeKey } from "@/components/chrome/useEscapeKey";
 import { useGame } from "@/state/game-context";
 
 export function MenuSheet({
@@ -20,6 +21,8 @@ export function MenuSheet({
   const { state, goToSetup } = useGame();
   const [confirmingExit, setConfirmingExit] = useState(false);
 
+  useEscapeKey(onClose, !confirmingExit);
+
   if (confirmingExit) {
     return (
       <ConfirmDialog
@@ -37,43 +40,39 @@ export function MenuSheet({
   }
 
   return (
-    <Sheet title="메뉴" onClose={onClose} small>
-      <MenuItem icon="順" title={state.settings.finalCalc ? "순위 · 최종 정산" : "순위"} onClick={onOpenSettle} />
-      <MenuItem icon="記" title="기록 · 점수 그래프" desc={`${state.log.length}건`} onClick={onOpenLog} />
-      <MenuItem icon="設" title="설정" desc="이름 · 규칙 · 현재 상황 수동 조정" onClick={onOpenSettings} />
-      <MenuItem icon="出" title="나가기" desc="게임을 끝내고 시작 화면으로" onClick={() => setConfirmingExit(true)} danger />
-    </Sheet>
-  );
-}
-
-function MenuItem({
-  icon,
-  title,
-  desc,
-  onClick,
-  danger,
-}: {
-  icon: string;
-  title: string;
-  desc?: string;
-  onClick: () => void;
-  danger?: boolean;
-}) {
-  return (
-    <button
-      type="button"
-      onClick={onClick}
-      className={`flex items-center gap-3.5 rounded-2xl border bg-panel px-3 py-3 text-left ${
-        danger ? "border-red/40" : "border-line"
-      }`}
+    <div
+      className="overlay"
+      onClick={(e) => {
+        if (e.target === e.currentTarget) onClose();
+      }}
     >
-      <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border border-line bg-panel-2 font-cjk text-sm text-ink-2">
-        {icon}
-      </span>
-      <span className="min-w-0 flex-1">
-        <span className={`block font-medium ${danger ? "text-red" : "text-ink"}`}>{title}</span>
-        {desc && <span className="block truncate text-xs text-muted">{desc}</span>}
-      </span>
-    </button>
+      <div className="menu">
+        <button type="button" className="mi" onClick={onOpenSettle}>
+          <span className="ic">順</span>
+          <span className="t">{state.settings.finalCalc ? "순위 · 최종 정산" : "순위"}</span>
+        </button>
+        <button type="button" className="mi" onClick={onOpenLog}>
+          <span className="ic">記</span>
+          <span className="t">
+            기록 · 점수 그래프
+            <span className="d">{state.log.length}건</span>
+          </span>
+        </button>
+        <button type="button" className="mi" onClick={onOpenSettings}>
+          <span className="ic">設</span>
+          <span className="t">
+            설정
+            <span className="d">이름 · 규칙 · 현재 상황 수동 조정</span>
+          </span>
+        </button>
+        <button type="button" className="mi sep" onClick={() => setConfirmingExit(true)}>
+          <span className="ic">出</span>
+          <span className="t">
+            나가기
+            <span className="d">게임을 끝내고 시작 화면으로</span>
+          </span>
+        </button>
+      </div>
+    </div>
   );
 }

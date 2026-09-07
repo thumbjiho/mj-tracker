@@ -16,7 +16,7 @@ export const viewport: Viewport = {
 
 export default function RootLayout({ children }: LayoutProps<"/">) {
   return (
-    <html lang="ko" className="h-full">
+    <html lang="ko">
       {/*
         next/font/google can't self-host these three families for Korean text —
         their Google Fonts metadata only exposes latin/latin-ext subsets, so a
@@ -29,7 +29,8 @@ export default function RootLayout({ children }: LayoutProps<"/">) {
         href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+KR:wght@400;500;600&family=Rajdhani:wght@600;700&family=Noto+Serif+KR:wght@700&display=swap"
         precedence="default"
       />
-      <body className="h-full overflow-hidden overscroll-none">{children}</body>
+      {/* sizing/background/overflow for html+body come from the ported .board app's global CSS (html,body{...} in globals.css), not Tailwind, to match the alpha exactly */}
+      <body>{children}</body>
     </html>
   );
 }

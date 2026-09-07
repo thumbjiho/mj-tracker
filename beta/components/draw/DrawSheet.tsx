@@ -1,8 +1,8 @@
 "use client";
 
 import { useState } from "react";
-import { AppButton, SeatOptionButton } from "@/components/design-system/Button";
-import { Sheet } from "@/components/design-system/Sheet";
+import { Full } from "@/components/chrome/Full";
+import { useEscapeKey } from "@/components/chrome/useEscapeKey";
 import { sgn } from "@/lib/format";
 import { dealer, seatWind } from "@/lib/mahjong/game";
 import type { SeatIndex } from "@/lib/mahjong/types";
@@ -33,37 +33,39 @@ export function DrawSheet({ onDone }: { onDone: (ended: boolean) => void }) {
     onDone(r.ended);
   }
 
+  useEscapeKey(() => onDone(false));
+
   return (
-    <Sheet
-      title="유국"
-      onClose={() => onDone(false)}
-      question="텐파이한 사람을 모두 고르세요"
-      footer={<AppButton onClick={confirm}>확정</AppButton>}
-    >
-      {([0, 1, 2, 3] as SeatIndex[]).map((i) => (
-        <SeatOptionButton
-          key={i}
-          wind={seatWind(state, i)}
-          name={state.players[i].name}
-          dealer={i === d}
-          active={tenpai[i]}
-          disabled={abortive}
-          onClick={() => toggle(i)}
-        />
-      ))}
-      <label className="flex items-center gap-3 rounded-2xl border border-line bg-panel p-3.5 text-sm">
-        <input
-          type="checkbox"
-          checked={abortive}
-          onChange={(e) => setAbortive(e.target.checked)}
-          className="h-5 w-5 accent-amber"
-        />
-        도중 유국 (구종구패 · 사풍연타 · 사가리치 · 사깡산료)
-      </label>
-      <div className="flex items-center justify-between rounded-2xl border border-line bg-panel px-3.5 py-2.5">
-        <span className="text-sm text-muted">결과</span>
-        <span className="text-right text-sm font-semibold text-ink">{text}</span>
+    <Full title="유국" dialog center onClose={() => onDone(false)} q="텐파이한 사람을 모두 고르세요" footer={
+      <button type="button" className="primary" onClick={confirm}>
+        확정
+      </button>
+    }>
+      <div className="big c1">
+        {([0, 1, 2, 3] as SeatIndex[]).map((i) => (
+          <button
+            key={i}
+            type="button"
+            className={`bopt ${tenpai[i] ? "on" : ""} ${i === d ? "dealer" : ""}`}
+            disabled={abortive}
+            onClick={() => toggle(i)}
+          >
+            <span className="wind">{seatWind(state, i)}</span>
+            <span>{state.players[i].name}</span>
+            <span className="sub2">{state.players[i].score}</span>
+          </button>
+        ))}
       </div>
-    </Sheet>
+      <label className="check">
+        <input type="checkbox" checked={abortive} onChange={(e) => setAbortive(e.target.checked)} /> 도중 유국 (구종구패 ·
+        사풍연타 · 사가리치 · 사깡산료)
+      </label>
+      <div className="sum">
+        <div className="li">
+          <span className="k">결과</span>
+          <span className="v">{text}</span>
+        </div>
+      </div>
+    </Full>
   );
 }

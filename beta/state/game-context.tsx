@@ -122,23 +122,29 @@ export function GameProvider({ children }: { children: ReactNode }) {
     [state]
   );
 
-  const startNewGame = useCallback((names: string[], settings: GameSettings) => {
-    setFlash(null);
-    setState(startGame(names, settings));
-  }, []);
+  const startNewGame = useCallback(
+    (names: string[], settings: GameSettings) => {
+      setFlash(null);
+      setState(startGame(names, settings));
+      showToast("게임을 시작했습니다");
+    },
+    [showToast]
+  );
 
   const startGameFromState = useCallback(
     (names: string[], settings: GameSettings, manual: ManualState) => {
       setFlash(null);
       setState(startGameWithManualState(names, settings, manual));
+      showToast("게임을 시작했습니다");
     },
-    []
+    [showToast]
   );
 
   const restart = useCallback(() => {
     setState((prev) => restartGame(prev));
     setFlash(null);
-  }, []);
+    showToast("다시 시작했습니다");
+  }, [showToast]);
 
   const goToSetup = useCallback(() => {
     setState((prev) => exitToSetup(prev));

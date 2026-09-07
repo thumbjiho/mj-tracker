@@ -1,7 +1,6 @@
 "use client";
 
-import { SegmentedControl } from "@/components/design-system/Button";
-import type { GameLength, GameSettings, UmaKey } from "@/lib/mahjong/types";
+import type { GameSettings, UmaKey } from "@/lib/mahjong/types";
 
 export function RuleFields({
   settings,
@@ -10,66 +9,57 @@ export function RuleFields({
   settings: GameSettings;
   onChange: (settings: GameSettings) => void;
 }) {
+  const on = (v: unknown, c: unknown) => (v === c ? "on" : "");
+
   return (
     <>
-      <p className="text-xs tracking-wide text-muted">길이</p>
-      <SegmentedControl<GameLength>
-        value={settings.length}
-        onChange={(length) => onChange({ ...settings, length })}
-        options={[
-          { value: "han", label: "반장 (東·南)" },
-          { value: "ton", label: "동풍전" },
-        ]}
-      />
+      <div className="lbl">
+        <span>길이</span>
+      </div>
+      <div className="seg">
+        <button type="button" className={on(settings.length, "han")} onClick={() => onChange({ ...settings, length: "han" })}>
+          반장 (東·南)
+        </button>
+        <button type="button" className={on(settings.length, "ton")} onClick={() => onChange({ ...settings, length: "ton" })}>
+          동풍전
+        </button>
+      </div>
 
-      <label className="mt-1 flex items-center gap-3 rounded-2xl border border-line bg-panel p-3.5 text-sm">
+      <label className="check" style={{ marginTop: 10 }}>
         <input
           type="checkbox"
           checked={settings.finalCalc}
           onChange={(e) => onChange({ ...settings, finalCalc: e.target.checked })}
-          className="h-5 w-5 accent-amber"
-        />
+        />{" "}
         최종 정산 점수 계산 (우마 · 오카)
       </label>
 
-      {settings.finalCalc && (
-        <>
-          <p className="text-xs tracking-wide text-muted">우마</p>
-          <SegmentedControl<UmaKey>
-            value={settings.uma}
-            onChange={(uma) => onChange({ ...settings, uma })}
-            options={[
-              { value: "none", label: "없음" },
-              { value: "5-10", label: "5-10" },
-              { value: "10-20", label: "10-20" },
-              { value: "10-30", label: "10-30" },
-            ]}
-          />
-          <p className="text-xs tracking-wide text-muted">반환점</p>
-          <div className="flex overflow-hidden rounded-xl border border-line">
-            {[30000, 25000].map((v) => (
-              <button
-                key={v}
-                type="button"
-                onClick={() => onChange({ ...settings, oka: v })}
-                className={`flex-1 px-2 py-3 text-sm font-medium ${
-                  settings.oka === v ? "bg-ink font-semibold text-[#10161a]" : "bg-panel text-ink-2"
-                }`}
-              >
-                {v === 30000 ? "30000" : "25000 (오카 없음)"}
-              </button>
-            ))}
-          </div>
-        </>
-      )}
+      <div hidden={!settings.finalCalc}>
+        <div className="lbl">
+          <span>우마</span>
+        </div>
+        <div className="seg">
+          {(["none", "5-10", "10-20", "10-30"] as UmaKey[]).map((u) => (
+            <button key={u} type="button" className={on(settings.uma, u)} onClick={() => onChange({ ...settings, uma: u })}>
+              {u === "none" ? "없음" : u}
+            </button>
+          ))}
+        </div>
+        <div className="lbl">
+          <span>반환점</span>
+        </div>
+        <div className="seg">
+          <button type="button" className={on(settings.oka, 30000)} onClick={() => onChange({ ...settings, oka: 30000 })}>
+            30000
+          </button>
+          <button type="button" className={on(settings.oka, 25000)} onClick={() => onChange({ ...settings, oka: 25000 })}>
+            25000 (오카 없음)
+          </button>
+        </div>
+      </div>
 
-      <label className="mt-1 flex items-center gap-3 rounded-2xl border border-line bg-panel p-3.5 text-sm">
-        <input
-          type="checkbox"
-          checked={settings.tobi}
-          onChange={(e) => onChange({ ...settings, tobi: e.target.checked })}
-          className="h-5 w-5 accent-amber"
-        />
+      <label className="check" style={{ marginTop: 10 }}>
+        <input type="checkbox" checked={settings.tobi} onChange={(e) => onChange({ ...settings, tobi: e.target.checked })} />{" "}
         토비 (0점 미만이면 종료)
       </label>
     </>

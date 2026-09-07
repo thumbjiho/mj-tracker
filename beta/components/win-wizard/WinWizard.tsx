@@ -1,8 +1,9 @@
 "use client";
 
 import { useState } from "react";
-import { Chip, SeatOptionButton, SegmentedControl } from "@/components/design-system/Button";
-import { Sheet, WizardNav } from "@/components/design-system/Sheet";
+import { ConfirmDialog } from "@/components/chrome/ConfirmDialog";
+import { Full } from "@/components/chrome/Full";
+import { useEscapeKey } from "@/components/chrome/useEscapeKey";
 import {
   FUS,
   LIMITS,
@@ -33,12 +34,19 @@ interface WinDraft {
   pending: WinInput[];
 }
 
-function freshDraft(): WinDraft {
+export interface WinDraftPreset {
+  winner: SeatIndex;
+  type?: WinType;
+  loser?: SeatIndex;
+  step: "type" | "points";
+}
+
+function freshDraft(preset?: WinDraftPreset): WinDraft {
   return {
-    step: "winner",
-    winner: null,
-    type: null,
-    loser: null,
+    step: preset?.step ?? "winner",
+    winner: preset?.winner ?? null,
+    type: preset?.type ?? null,
+    loser: preset?.loser ?? null,
     han: 0,
     fu: 30,
     limit: null,
@@ -129,17 +137,41 @@ function buildPays(
   return pays;
 }
 
-export function WinWizard({
-  initialWinner,
-  onDone,
+function Bopt({
+  active,
+  disabled,
+  dealer: isDealer,
+  wind,
+  name,
+  sub,
+  onClick,
 }: {
-  initialWinner?: SeatIndex;
-  onDone: (ended: boolean) => void;
+  active?: boolean;
+  disabled?: boolean;
+  dealer?: boolean;
+  wind: string;
+  name: string;
+  sub?: string | number;
+  onClick: () => void;
 }) {
-  const { state, confirmHand } = useGame();
-  const [draft, setDraft] = useState<WinDraft>(() =>
-    initialWinner != null ? { ...freshDraft(), winner: initialWinner, step: "type" } : freshDraft()
+  return (
+    <button
+      type="button"
+      className={`bopt ${active ? "on" : ""} ${isDealer ? "dealer" : ""}`}
+      disabled={disabled}
+      onClick={onClick}
+    >
+      <span className="wind">{wind}</span>
+      <span>{name}</span>
+      {sub !== undefined && <span className="sub2">{sub}</span>}
+    </button>
   );
+}
+
+export function WinWizard({ preset, onDone }: { preset?: WinDraftPreset; onDone: (ended: boolean) => void }) {
+  const { state, confirmHand } = useGame();
+  const [draft, setDraft] = useState<WinDraft>(() => freshDraft(preset));
+  const [confirmingClose, setConfirmingClose] = useState(false);
 
   const d = dealer(state);
   const steps = stepsFor(draft);
@@ -185,6 +217,15 @@ export function WinWizard({
     });
   }
 
+  function requestClose() {
+    const dirty = draft.winner != null || draft.pending.length > 0;
+    if (!dirty) {
+      onDone(false);
+      return;
+    }
+    setConfirmingClose(true);
+  }
+
   function goBack() {
     if (prevStep) {
       setDraft((prev) => ({ ...prev, step: prevStep }));
@@ -195,7 +236,7 @@ export function WinWizard({
       setDraft({ ...freshDraft(), ...last, han: 0, limit: null, pending: draft.pending.slice(0, -1), step: "confirm" });
       return;
     }
-    onDone(false);
+    requestClose();
   }
 
   function addAnotherWinner() {
@@ -214,395 +255,359 @@ export function WinWizard({
     if (r.ok) onDone(!!r.ended);
   }
 
-  const currentOk = computeWin(entryOf(draft), { dealer: d, honba: state.honba }).ok;
+  useEscapeKey(requestClose, !confirmingClose);
 
-  return (
-    <Sheet title={isAdding ? "화료 추가" : "화료"} onClose={() => onDone(false)} steps={{ n: steps.length, i: stepIndex + 1 }}>
-      {draft.step === "winner" && (
-        <WinnerStep draft={draft} dealer={d} state={state} isAdding={isAdding} onSelect={selectWinner} />
-      )}
-      {draft.step === "type" && (
-        <TypeStep name={state.players[draft.winner as SeatIndex].name} type={draft.type} onSelect={selectType} />
-      )}
-      {draft.step === "loser" && (
-        <LoserStep draft={draft} state={state} onSelect={selectLoser} />
-      )}
-      {draft.step === "points" && (
-        <PointsStep draft={draft} setDraft={setDraft} state={state} isDealerWinner={isDealerWinner} d={d} />
-      )}
-      {draft.step === "confirm" && (
-        <ConfirmStep draft={draft} state={state} d={d} onAddAnother={addAnotherWinner} />
-      )}
-
-      <div className="pt-1">
-        {draft.step === "confirm" ? (
-          <WizardNav
-            onPrev={goBack}
-            prevDisabled={false}
-            onNext={handleConfirm}
-            nextDisabled={!computeHand([...draft.pending, entryOf(draft)], { dealer: d, honba: state.honba, kyotaku: state.kyotaku }).ok}
-            nextLabel="확정"
-          />
-        ) : (
-          <WizardNav
-            onPrev={goBack}
-            prevDisabled={!prevStep && !isAdding}
-            onNext={goNext}
-            nextDisabled={
-              draft.step === "winner"
-                ? draft.winner == null
-                : draft.step === "type"
-                  ? draft.type == null
-                  : draft.step === "loser"
-                    ? draft.loser == null
-                    : !currentOk
-            }
-          />
-        )}
-      </div>
-    </Sheet>
-  );
-}
-
-function WinnerStep({
-  draft,
-  dealer: d,
-  state,
-  isAdding,
-  onSelect,
-}: {
-  draft: WinDraft;
-  dealer: SeatIndex;
-  state: ReturnType<typeof useGame>["state"];
-  isAdding: boolean;
-  onSelect: (seat: SeatIndex) => void;
-}) {
-  const taken = draft.pending.map((w) => w.winner).concat(isAdding ? [draft.pending[0].loser as SeatIndex] : []);
-  return (
-    <>
-      <p className="text-sm text-ink-2">
-        {isAdding ? `${state.players[draft.pending[0].loser as SeatIndex].name}에게서 추가로 화료한 사람은?` : "누가 화료했나요?"}
-      </p>
-      {([0, 1, 2, 3] as SeatIndex[]).map((i) => (
-        <SeatOptionButton
-          key={i}
-          wind={seatWind(state, i)}
-          name={state.players[i].name}
-          sub={state.players[i].score}
-          dealer={i === d}
-          active={draft.winner === i}
-          disabled={taken.includes(i)}
-          onClick={() => onSelect(i)}
-        />
-      ))}
-    </>
-  );
-}
-
-function TypeStep({ name, type, onSelect }: { name: string; type: WinType | null; onSelect: (t: WinType) => void }) {
-  return (
-    <>
-      <p className="text-base font-bold text-ink">
-        {name}의 화료 <small className="mt-0.5 block text-sm font-medium text-muted">어떻게 났나요?</small>
-      </p>
-      <div className="grid grid-cols-2 gap-2">
-        <button
-          type="button"
-          onClick={() => onSelect("ron")}
-          className={`flex min-h-32 flex-col items-center justify-center gap-1.5 rounded-2xl border px-3 py-4 text-2xl font-bold ${
-            type === "ron" ? "border-ink bg-ink text-[#10161a]" : "border-line bg-panel text-ink"
-          }`}
-        >
-          론
-          <small className="text-sm font-medium opacity-70">다른 사람의 버림패로</small>
-        </button>
-        <button
-          type="button"
-          onClick={() => onSelect("tsumo")}
-          className={`flex min-h-32 flex-col items-center justify-center gap-1.5 rounded-2xl border px-3 py-4 text-2xl font-bold ${
-            type === "tsumo" ? "border-ink bg-ink text-[#10161a]" : "border-line bg-panel text-ink"
-          }`}
-        >
-          쯔모
-          <small className="text-sm font-medium opacity-70">직접 뽑아서</small>
-        </button>
-      </div>
-    </>
-  );
-}
-
-function LoserStep({
-  draft,
-  state,
-  onSelect,
-}: {
-  draft: WinDraft;
-  state: ReturnType<typeof useGame>["state"];
-  onSelect: (seat: SeatIndex) => void;
-}) {
-  return (
-    <>
-      <p className="text-sm text-ink-2">누가 쏘였나요?</p>
-      {others(draft.winner as SeatIndex).map((i) => (
-        <SeatOptionButton
-          key={i}
-          wind={seatWind(state, i)}
-          name={state.players[i].name}
-          sub={state.players[i].score}
-          active={draft.loser === i}
-          onClick={() => onSelect(i)}
-        />
-      ))}
-    </>
-  );
-}
-
-function PointsStep({
-  draft,
-  setDraft,
-  state,
-  isDealerWinner,
-  d,
-}: {
-  draft: WinDraft;
-  setDraft: React.Dispatch<React.SetStateAction<WinDraft>>;
-  state: ReturnType<typeof useGame>["state"];
-  isDealerWinner: boolean;
-  d: SeatIndex;
-}) {
-  const winnerName = state.players[draft.winner as SeatIndex].name;
-  const preview = computeWin(entryOf(draft), { dealer: d, honba: state.honba });
-
-  return (
-    <>
-      <p className="text-base font-bold text-ink">
-        {draft.type === "ron" ? (
-          <>
-            {state.players[draft.loser as SeatIndex]?.name}
-            <i className="not-italic text-amber"> → </i>
-            {winnerName} 론
-          </>
-        ) : (
-          <>
-            모두<i className="not-italic text-amber"> → </i>
-            {winnerName} 쯔모
-          </>
-        )}
-        <small className="mt-0.5 block text-sm font-medium text-muted">
-          {isDealerWinner ? "親 화료 · " : "子 화료 · "}기본 점수를 고르세요
-        </small>
-      </p>
-
-      <SegmentedControl
-        value={draft.tab}
-        onChange={(tab) => setDraft((p) => ({ ...p, tab }))}
-        options={[
-          { value: "quick", label: "빠른 선택" },
-          { value: "hanfu", label: "판 · 부" },
-        ]}
+  if (confirmingClose) {
+    return (
+      <ConfirmDialog
+        title="화료 입력 취소"
+        text="지금까지 입력한 화료 내용이 사라집니다. 나갈까요?"
+        okLabel="나가기"
+        danger
+        onCancel={() => setConfirmingClose(false)}
+        onOk={() => onDone(false)}
       />
+    );
+  }
 
-      {draft.tab === "quick" ? (
-        <>
-          {draft.type === "ron" ? (
-            <div className="grid grid-cols-4 gap-2">
-              {(isDealerWinner ? RON_OYA : RON_KO).map((v) => (
-                <Chip
-                  key={v}
-                  active={!draft.han && +draft.base === v}
-                  onClick={() => setDraft((p) => ({ ...p, han: 0, limit: null, base: v }))}
-                >
-                  {v}
-                </Chip>
-              ))}
-            </div>
-          ) : isDealerWinner ? (
-            <>
-              <p className="text-xs tracking-wide text-muted">각자 지불</p>
-              <div className="grid grid-cols-4 gap-2">
-                {TSUMO_OYA.map((v) => (
-                  <Chip
+  const title = draft.step === "confirm" ? "확인" : isAdding ? "화료 추가" : "화료";
+  const navBase = { prevDisabled: !prevStep && !isAdding, onPrev: goBack };
+
+  if (draft.step === "winner") {
+    const taken = draft.pending.map((w) => w.winner).concat(isAdding ? [draft.pending[0].loser as SeatIndex] : []);
+    return (
+      <Full
+        title={title}
+        dialog
+        center
+        steps={{ n: steps.length, i: stepIndex + 1 }}
+        onClose={requestClose}
+        q={isAdding ? `${state.players[draft.pending[0].loser as SeatIndex].name}에게서 추가로 화료한 사람은?` : "누가 화료했나요?"}
+        nav={{ ...navBase, onNext: goNext, nextDisabled: draft.winner == null }}
+      >
+        <div className="big c1">
+          {([0, 1, 2, 3] as SeatIndex[]).map((i) => (
+            <Bopt
+              key={i}
+              wind={seatWind(state, i)}
+              name={state.players[i].name}
+              sub={state.players[i].score}
+              dealer={i === d}
+              active={draft.winner === i}
+              disabled={taken.includes(i)}
+              onClick={() => selectWinner(i)}
+            />
+          ))}
+        </div>
+      </Full>
+    );
+  }
+
+  if (draft.step === "type") {
+    const winnerName = state.players[draft.winner as SeatIndex].name;
+    return (
+      <Full
+        title={title}
+        dialog
+        center
+        steps={{ n: steps.length, i: stepIndex + 1 }}
+        onClose={requestClose}
+        q={
+          <b className="qbig">
+            {winnerName}의 화료
+            <small>어떻게 났나요?</small>
+          </b>
+        }
+        nav={{ ...navBase, onNext: goNext, nextDisabled: !draft.type }}
+      >
+        <div className="big c1" style={{ flex: 1 }}>
+          <button type="button" className={`bopt tall ${draft.type === "ron" ? "on" : ""}`} onClick={() => selectType("ron")}>
+            론
+            <small>다른 사람의 버림패로</small>
+          </button>
+          <button
+            type="button"
+            className={`bopt tall ${draft.type === "tsumo" ? "on" : ""}`}
+            onClick={() => selectType("tsumo")}
+          >
+            쯔모
+            <small>직접 뽑아서</small>
+          </button>
+        </div>
+      </Full>
+    );
+  }
+
+  if (draft.step === "loser") {
+    return (
+      <Full
+        title={title}
+        dialog
+        center
+        steps={{ n: steps.length, i: stepIndex + 1 }}
+        onClose={requestClose}
+        q="누가 쏘였나요?"
+        nav={{ ...navBase, onNext: goNext, nextDisabled: draft.loser == null }}
+      >
+        <div className="big c1">
+          {others(draft.winner as SeatIndex).map((i) => (
+            <Bopt
+              key={i}
+              wind={seatWind(state, i)}
+              name={state.players[i].name}
+              sub={state.players[i].score}
+              dealer={i === d}
+              active={draft.loser === i}
+              onClick={() => selectLoser(i)}
+            />
+          ))}
+        </div>
+      </Full>
+    );
+  }
+
+  if (draft.step === "points") {
+    const winnerName = state.players[draft.winner as SeatIndex].name;
+    const preview = computeWin(entryOf(draft), { dealer: d, honba: state.honba });
+    const ok = preview.ok;
+    const fuOn = draft.han > 0 && draft.han < 5;
+
+    return (
+      <Full
+        title={title}
+        dialog
+        center
+        steps={{ n: steps.length, i: stepIndex + 1 }}
+        onClose={requestClose}
+        q={
+          <b className="qbig">
+            {draft.type === "ron" ? (
+              <>
+                {state.players[draft.loser as SeatIndex].name}
+                <i>→</i>
+                {winnerName} 론
+              </>
+            ) : (
+              <>
+                모두<i>→</i>
+                {winnerName} 쯔모
+              </>
+            )}
+            <small>{isDealerWinner ? "親 화료 · " : "子 화료 · "}기본 점수를 고르세요</small>
+          </b>
+        }
+        nav={{ ...navBase, onNext: goNext, nextDisabled: !ok }}
+      >
+        <div className="seg">
+          <button type="button" className={draft.tab === "quick" ? "on" : ""} onClick={() => setDraft((p) => ({ ...p, tab: "quick" }))}>
+            빠른 선택
+          </button>
+          <button type="button" className={draft.tab === "hanfu" ? "on" : ""} onClick={() => setDraft((p) => ({ ...p, tab: "hanfu" }))}>
+            판 · 부
+          </button>
+        </div>
+
+        {draft.tab === "quick" ? (
+          <>
+            {draft.type === "ron" ? (
+              <div className="chips">
+                {(isDealerWinner ? RON_OYA : RON_KO).map((v) => (
+                  <button
                     key={v}
-                    active={!draft.han && +draft.a === v}
-                    onClick={() => setDraft((p) => ({ ...p, han: 0, limit: null, a: v, b: "" }))}
+                    type="button"
+                    className={`chip ${!draft.han && +draft.base === v ? "on" : ""}`}
+                    onClick={() => setDraft((p) => ({ ...p, han: 0, limit: null, base: v }))}
                   >
                     {v}
-                  </Chip>
+                  </button>
                 ))}
               </div>
-            </>
-          ) : (
-            <>
-              <p className="text-xs tracking-wide text-muted">子 / 親 지불</p>
-              <div className="grid grid-cols-3 gap-2">
-                {TSUMO_KO.map(([a, b]) => (
-                  <Chip
-                    key={a}
-                    active={!draft.han && +draft.a === a && +draft.b === b}
-                    onClick={() => setDraft((p) => ({ ...p, han: 0, limit: null, a, b }))}
-                  >
-                    {a}
-                    <small className="mx-0.5 opacity-60"> / </small>
-                    {b}
-                  </Chip>
-                ))}
+            ) : isDealerWinner ? (
+              <>
+                <div className="lbl">
+                  <span>각자 지불</span>
+                </div>
+                <div className="chips">
+                  {TSUMO_OYA.map((v) => (
+                    <button
+                      key={v}
+                      type="button"
+                      className={`chip ${!draft.han && +draft.a === v ? "on" : ""}`}
+                      onClick={() => setDraft((p) => ({ ...p, han: 0, limit: null, a: v, b: "" }))}
+                    >
+                      {v}
+                    </button>
+                  ))}
+                </div>
+              </>
+            ) : (
+              <>
+                <div className="lbl">
+                  <span>子 / 親 지불</span>
+                </div>
+                <div className="chips" style={{ gridTemplateColumns: "repeat(3,1fr)" }}>
+                  {TSUMO_KO.map(([a, b]) => (
+                    <button
+                      key={a}
+                      type="button"
+                      className={`chip ${!draft.han && +draft.a === a && +draft.b === b ? "on" : ""}`}
+                      onClick={() => setDraft((p) => ({ ...p, han: 0, limit: null, a, b }))}
+                    >
+                      {a}
+                      <small> / </small>
+                      {b}
+                    </button>
+                  ))}
+                </div>
+              </>
+            )}
+            <div className="note">
+              본장 {state.honba}개와 공탁 {state.kyotaku}개는 다음 화면에서 자동으로 더해집니다.
+            </div>
+          </>
+        ) : (
+          <>
+            <div className="lbl">
+              <span>판</span>
+            </div>
+            <div className="chips hf">
+              {[1, 2, 3, 4].map((h) => (
+                <button
+                  key={h}
+                  type="button"
+                  className={`chip sm ${draft.han === h && !draft.limit ? "on" : ""}`}
+                  onClick={() => setDraft((p) => applyAutofill({ ...p, han: h, limit: null }, isDealerWinner))}
+                >
+                  {h}판
+                </button>
+              ))}
+              {LIMITS.map(([label, h]) => (
+                <button
+                  key={label}
+                  type="button"
+                  className={`chip sm ${draft.limit === label ? "on" : ""}`}
+                  style={{ fontFamily: "var(--ui)", fontWeight: 600 }}
+                  onClick={() => setDraft((p) => applyAutofill({ ...p, han: h, limit: label }, isDealerWinner))}
+                >
+                  {label}
+                </button>
+              ))}
+            </div>
+            <div className="lbl">
+              <span>부</span>
+              <span className="hint">{fuOn ? "" : "1~4판일 때만 고릅니다"}</span>
+            </div>
+            <div className={`chips hf ${fuOn ? "" : "dimmed"}`}>
+              {FUS.map((f) => (
+                <button
+                  key={f}
+                  type="button"
+                  className={`chip sm ${fuOn && draft.fu === f ? "on" : ""}`}
+                  disabled={!fuOn}
+                  onClick={() => setDraft((p) => applyAutofill({ ...p, fu: f, limit: null }, isDealerWinner))}
+                >
+                  {f}부
+                </button>
+              ))}
+            </div>
+            <div className="sum">
+              <div className="li">
+                <span className="k">{winLabel(draft) || "판과 부를 고르세요"}</span>
+                <span className="v amber">{preview.ok ? preview.base : "—"}</span>
               </div>
-            </>
-          )}
-          <p className="text-xs leading-relaxed text-muted">
-            본장 {state.honba}개와 공탁 {state.kyotaku}개는 다음 화면에서 자동으로 더해집니다.
-          </p>
-        </>
-      ) : (
-        <>
-          <p className="text-xs tracking-wide text-muted">판</p>
-          <div className="grid grid-cols-4 gap-2">
-            {[1, 2, 3, 4].map((h) => (
-              <Chip
-                key={h}
-                className="min-h-11 text-sm"
-                active={draft.han === h && !draft.limit}
-                onClick={() => setDraft((p) => applyAutofill({ ...p, han: h, limit: null }, isDealerWinner))}
-              >
-                {h}판
-              </Chip>
-            ))}
-            {LIMITS.map(([label, h]) => (
-              <Chip
-                key={label}
-                className="min-h-11 font-ui text-sm font-semibold"
-                active={draft.limit === label}
-                onClick={() => setDraft((p) => applyAutofill({ ...p, han: h, limit: label }, isDealerWinner))}
-              >
-                {label}
-              </Chip>
-            ))}
-          </div>
-          <p className="flex justify-between text-xs tracking-wide text-muted">
-            <span>부</span>
-            <span>{draft.han > 0 && draft.han < 5 ? "" : "1~4판일 때만 고릅니다"}</span>
-          </p>
-          <div className={`grid grid-cols-4 gap-2 ${draft.han > 0 && draft.han < 5 ? "" : "opacity-35"}`}>
-            {FUS.map((f) => (
-              <Chip
-                key={f}
-                className="min-h-11 text-sm"
-                disabled={!(draft.han > 0 && draft.han < 5)}
-                active={draft.han > 0 && draft.han < 5 && draft.fu === f}
-                onClick={() => setDraft((p) => applyAutofill({ ...p, fu: f, limit: null }, isDealerWinner))}
-              >
-                {f}부
-              </Chip>
-            ))}
-          </div>
-          <div className="flex items-center justify-between rounded-2xl border border-line bg-panel px-3.5 py-2.5">
-            <span className="text-sm text-muted">{winLabel(draft) || "판과 부를 고르세요"}</span>
-            <span className="font-num text-2xl font-semibold text-amber tabular-nums">
-              {preview.ok ? preview.base : "—"}
-            </span>
-          </div>
-        </>
-      )}
-    </>
-  );
-}
+            </div>
+          </>
+        )}
+      </Full>
+    );
+  }
 
-function ConfirmStep({
-  draft,
-  state,
-  d,
-  onAddAnother,
-}: {
-  draft: WinDraft;
-  state: ReturnType<typeof useGame>["state"];
-  d: SeatIndex;
-  onAddAnother: () => void;
-}) {
+  // confirm
   const wins = [...draft.pending, entryOf(draft)];
   const r = computeHand(wins, { dealer: d, honba: state.honba, kyotaku: state.kyotaku });
   const canAdd = draft.type === "ron" && wins.length < 3;
   const pays = r.ok ? buildPays(wins, state.honba, d, state.kyotaku, r.rec) : [];
 
   return (
-    <>
-      <p className="text-base font-bold text-ink">
-        {wins.map((w) => state.players[w.winner].name).join(" · ")}의 화료
-        <small className="mt-0.5 block text-sm font-medium text-muted">누가 누구에게 얼마를 주는지 확인하세요</small>
-      </p>
-
-      <div className="flex flex-col gap-2">
+    <Full
+      title={title}
+      dialog
+      center
+      steps={{ n: steps.length, i: stepIndex + 1 }}
+      onClose={requestClose}
+      q={
+        <b className="qbig">
+          {wins.map((w) => state.players[w.winner].name).join(" · ")}의 화료
+          <small>누가 누구에게 얼마를 주는지 확인하세요</small>
+        </b>
+      }
+      nav={{
+        ...navBase,
+        onNext: handleConfirm,
+        nextDisabled: !r.ok,
+        nextLabel: "확정",
+        middle: canAdd ? (
+          <button type="button" className="ghost nowrap" onClick={addAnotherWinner}>
+            {wins.length === 1 ? "더블론" : "트리플론"} 추가
+          </button>
+        ) : undefined,
+      }}
+    >
+      <div className="pays">
         {pays.map((p, i) => (
-          <div
-            key={i}
-            className={`grid grid-cols-[1fr_auto_1fr] items-center gap-2 rounded-2xl border px-3 py-2.5 ${
-              p.from === null ? "border-dashed border-line bg-panel" : "border-line bg-panel-2"
-            }`}
-          >
-            <span className={`truncate text-right font-semibold ${p.from === null ? "text-sm text-muted" : "text-ink-2"}`}>
-              {p.from === null ? "공탁" : p.from.map((s) => state.players[s].name).join(" · ")}
+          <div key={i} className={`pay ${p.from == null ? "k" : ""}`}>
+            <span className={`from ${p.from && p.from.length > 1 ? "multi" : ""}`}>
+              {p.from == null
+                ? "공탁"
+                : p.from.map((s, idx) => (
+                    <span key={s}>
+                      {idx > 0 && <span className="dot">·</span>}
+                      {state.players[s].name}
+                    </span>
+                  ))}
             </span>
-            <span className="flex flex-col items-center gap-0.5 leading-none">
-              <span className="flex items-center gap-1.5">
-                <b className="font-num text-2xl text-ink tabular-nums">{p.amt}</b>
-                <i className="not-italic text-amber">→</i>
+            <span className="mid">
+              <span className="amt">
+                <b>{p.amt}</b>
+                <i>→</i>
               </span>
-              {p.label && <small className="text-[11px] text-muted">{p.label}</small>}
+              {p.label && <small>{p.label}</small>}
             </span>
-            <span className="truncate text-left font-semibold text-amber">{state.players[p.to].name}</span>
+            <span className="to">{state.players[p.to].name}</span>
           </div>
         ))}
       </div>
-
-      <div className="rounded-2xl border border-line bg-panel px-3.5">
-        <Row
-          k="국"
-          v={`${roundLabel(state)}${wins.length === 2 ? " · 더블론" : wins.length === 3 ? " · 트리플론" : ""}`}
-        />
+      <div className="sum">
+        <div className="li">
+          <span className="k">국</span>
+          <span className="v">
+            {roundLabel(state)}
+            {wins.length === 2 ? " · 더블론" : wins.length === 3 ? " · 트리플론" : ""}
+          </span>
+        </div>
         {wins.map((w, k) => (
-          <Row
-            key={k}
-            k={`${state.players[w.winner].name} · ${w.type === "ron" ? `론 ← ${state.players[w.loser as SeatIndex].name}` : "쯔모"}${w.label ? ` · ${w.label}` : ""}`}
-            v={r.ok ? (r.parts?.[k]?.base ?? "—") : "—"}
-            numeric
-          />
+          <div className="li" key={k}>
+            <span className="k">
+              {state.players[w.winner].name} ·{" "}
+              {w.type === "ron" ? `론 ← ${state.players[w.loser as SeatIndex].name}` : "쯔모"}
+              {w.label ? ` · ${w.label}` : ""}
+            </span>
+            <span className="v n">{r.ok ? r.parts?.[k]?.base : "—"}</span>
+          </div>
         ))}
       </div>
-      <div className="rounded-2xl border border-line bg-panel px-3.5">
+      <div className="sum">
         {([0, 1, 2, 3] as SeatIndex[]).map((i) => (
-          <Row
-            key={i}
-            k={`${seatWind(state, i)} ${state.players[i].name}`}
-            v={r.deltas[i] ? (r.deltas[i] > 0 ? `+${r.deltas[i]}` : `${r.deltas[i]}`) : "-"}
-            numeric
-            tone={r.deltas[i] > 0 ? "up" : r.deltas[i] < 0 ? "down" : undefined}
-          />
+          <div className="li" key={i}>
+            <span className="k">
+              {seatWind(state, i)} {state.players[i].name}
+            </span>
+            <span className={`v n ${r.deltas[i] > 0 ? "up" : r.deltas[i] < 0 ? "down" : ""}`}>
+              {r.deltas[i] ? (r.deltas[i] > 0 ? `+${r.deltas[i]}` : r.deltas[i]) : "-"}
+            </span>
+          </div>
         ))}
       </div>
-
-      {canAdd && (
-        <button
-          type="button"
-          onClick={onAddAnother}
-          className="rounded-2xl border border-line-2 bg-panel px-4 py-3 text-sm font-semibold text-ink"
-        >
-          {wins.length === 1 ? "더블론" : "트리플론"} 추가
-        </button>
-      )}
-    </>
-  );
-}
-
-function Row({ k, v, numeric, tone }: { k: string; v: string | number; numeric?: boolean; tone?: "up" | "down" }) {
-  return (
-    <div className="flex items-center justify-between gap-3 border-b border-line py-2.5 last:border-0">
-      <span className="text-sm text-muted">{k}</span>
-      <span
-        className={`font-semibold ${numeric ? "font-num tabular-nums" : ""} ${
-          tone === "up" ? "text-green" : tone === "down" ? "text-red" : "text-ink"
-        }`}
-      >
-        {v}
-      </span>
-    </div>
+    </Full>
   );
 }

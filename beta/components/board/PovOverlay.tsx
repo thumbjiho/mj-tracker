@@ -1,80 +1,81 @@
 "use client";
 
+import { useState } from "react";
 import { deltaClass, sgn } from "@/lib/format";
-import { roundLabel, seatWind } from "@/lib/mahjong/game";
+import { posOf, roundLabel, seatWind } from "@/lib/mahjong/game";
 import type { GameState, SeatIndex } from "@/lib/mahjong/types";
 
-interface PovCellProps {
-  label: string;
-  name: string;
-  value: number;
-  isMe?: boolean;
-}
+const SEAT_ROT = [0, -90, 180, 90];
 
-function PovCell({ label, name, value, isMe }: PovCellProps) {
-  const kind = deltaClass(value);
-  return (
-    <div
-      className={`flex flex-col items-center justify-center gap-1 rounded-xl border p-3 text-center ${
-        isMe ? "border-amber-2 bg-panel-2" : "border-line bg-panel"
-      }`}
-    >
-      <span className={`text-[11px] tracking-wide ${isMe ? "text-ink" : "text-muted"}`}>{label}</span>
-      <span className={`max-w-full truncate text-sm font-semibold ${isMe ? "text-ink" : "text-ink-2"}`}>{name}</span>
-      <span
-        className={`font-num text-2xl font-bold tabular-nums ${
-          isMe ? "text-amber" : kind === "up" ? "text-green" : kind === "down" ? "text-red" : "text-muted"
-        }`}
-      >
-        {isMe ? value : value === 0 ? "±0" : sgn(value)}
-      </span>
-    </div>
-  );
+function computeMetrics(rot: number) {
+  const W = window.innerWidth;
+  const H = window.innerHeight;
+  const sw = Math.abs(rot) === 90;
+  const w = sw ? H : W;
+  const h = sw ? W : H;
+  const side = Math.min(w, h) - Math.round(Math.min(w, h) * 0.06);
+  const cell = Math.floor(side / 3);
+  return { w, h, side, cell };
 }
 
 export function PovOverlay({
   state,
   seat,
+  hold,
   onClose,
 }: {
   state: GameState;
   seat: SeatIndex;
+  hold: boolean;
   onClose: () => void;
 }) {
+  const rot = SEAT_ROT[posOf(state, seat)];
+  // Matches the alpha exactly: computed once at open time, not recalculated on resize.
+  const [{ w, h, side, cell }] = useState(() => computeMetrics(rot));
   const me = state.players[seat];
   const toimen = ((seat + 2) % 4) as SeatIndex;
   const kami = ((seat + 3) % 4) as SeatIndex;
   const shimo = ((seat + 1) % 4) as SeatIndex;
   const rank =
-    [0, 1, 2, 3]
-      .sort((a, b) => state.players[b].score - state.players[a].score || a - b)
-      .indexOf(seat) + 1;
+    [0, 1, 2, 3].sort((a, b) => state.players[b].score - state.players[a].score || a - b).indexOf(seat) + 1;
+
+  const relCell = (j: SeatIndex, cls: string, label: string) => {
+    const df = me.score - state.players[j].score;
+    return (
+      <div className={`pv ${cls}`} key={cls}>
+        <span className="rel">{label}</span>
+        <span className="nm">{state.players[j].name}</span>
+        <span className={`df ${deltaClass(df)}`}>{df === 0 ? "±0" : sgn(df)}</span>
+        <span className="sc">{state.players[j].score}</span>
+      </div>
+    );
+  };
 
   return (
-    <div
-      className="absolute inset-0 z-30 flex cursor-pointer items-center justify-center bg-[rgba(15,21,19,0.985)]"
-      onClick={onClose}
-    >
+    <div className="pov" onClick={onClose}>
       <div
-        className="grid w-[min(88vw,88vh)] grid-cols-3 grid-rows-3 gap-2"
-        onClick={(e) => e.stopPropagation()}
+        className="pov-in"
+        style={{ width: w, height: h, transform: `translate(-50%,-50%) rotate(${rot}deg)` }}
       >
-        <div />
-        <PovCell label="대면" name={state.players[toimen].name} value={me.score - state.players[toimen].score} />
-        <div />
-        <PovCell label="상가" name={state.players[kami].name} value={me.score - state.players[kami].score} />
-        <div className="flex flex-col items-center justify-center text-center">
-          <div className="font-num text-3xl leading-none font-bold text-ink">
-            {rank}
-            <small className="ml-1 font-ui text-sm font-semibold text-ink-2">위</small>
+        <div className="pgrid" style={{ width: side, height: side, "--cell": `${cell}px` } as React.CSSProperties}>
+          {relCell(toimen, "toimen", "대면")}
+          {relCell(kami, "kami", "상가")}
+          {relCell(shimo, "shimo", "하가")}
+          <div className="pv mid">
+            <span className="rk">
+              {rank}
+              <small>위</small>
+            </span>
+            <span className="rd">{roundLabel(state)}</span>
+            {!hold && <span className="hint">탭하면 닫힙니다</span>}
           </div>
-          <div className="mt-1 font-cjk text-sm text-muted">{roundLabel(state)}</div>
-          <div className="mt-1 text-xs text-muted">탭하면 닫힙니다</div>
+          <div className="pv me">
+            <span className="rel">{seatWind(state, seat)} · 나</span>
+            <span className="nm">{me.name}</span>
+            <span className="df">{me.score}</span>
+            <span className="sc">{me.riichi ? "리치 중" : state.kyotaku ? `공탁 ${state.kyotaku}` : " "}</span>
+          </div>
         </div>
-        <PovCell label="하가" name={state.players[shimo].name} value={me.score - state.players[shimo].score} />
-        <div />
-        <PovCell label={`${seatWind(state, seat)} · 나`} name={me.name} value={me.score} isMe />
-        <div />
       </div>
     </div>
   );
