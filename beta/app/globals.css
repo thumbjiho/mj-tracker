@@ -1,0 +1,43 @@
+@import "tailwindcss";
+
+/*
+ * Design tokens — single source of truth for color/type across the app.
+ * Mirrors the palette proven in the alpha (public/index.html at the repo root).
+ * Tailwind v4 turns `--color-*` into bg-/text-/border-* utilities and
+ * `--font-*` into font-* utilities automatically.
+ */
+@theme {
+  --color-ground: #0f1513;
+  --color-panel: #182220;
+  --color-panel-2: #1f2c29;
+  --color-line: #2c3d39;
+  --color-line-2: #3b524c;
+  --color-ink: #ece6d6;
+  --color-ink-2: #b9c2bb;
+  --color-muted: #7f908a;
+  --color-amber: #f5b342;
+  --color-amber-2: #b57c1d;
+  --color-red: #e8553f;
+  --color-red-2: #b23a2a;
+  --color-green: #4cb98a;
+
+  --font-ui: "IBM Plex Sans KR", system-ui, -apple-system, sans-serif;
+  --font-num: "Rajdhani", "IBM Plex Sans KR", sans-serif;
+  --font-cjk: "Noto Serif KR", "IBM Plex Sans KR", serif;
+}
+
+@layer base {
+  html {
+    color-scheme: dark;
+  }
+  body {
+    background: var(--color-ground);
+    color: var(--color-ink);
+    font-family: var(--font-ui);
+    -webkit-tap-highlight-color: transparent;
+    user-select: none;
+  }
+  button {
+    touch-action: manipulation;
+  }
+}
