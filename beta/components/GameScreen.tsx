@@ -49,8 +49,6 @@ export function GameScreen() {
         flash={flash}
         onToggleRiichi={doRiichi}
         onSeatPointerDown={seatPress.onPointerDown}
-        onSeatPointerUp={seatPress.onPointerUp}
-        onSeatPointerCancel={seatPress.onPointerCancel}
         onDraw={() => setSheet({ type: "draw" })}
         onMenu={() => setSheet({ type: "menu" })}
       />

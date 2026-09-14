@@ -1,6 +1,7 @@
 import { WINDS } from "./constants";
 import { computeHand, others } from "./scoring";
 import type {
+  ChomboInput,
   DrawInput,
   GameSettings,
   GameState,
@@ -51,9 +52,15 @@ export const roundLabel = (s: GameState) =>
 export const shortRound = (s: GameState) => `${WINDS[s.roundWind]}${s.kyoku}`;
 export const seatWind = (s: GameState, seat: SeatIndex) =>
   WINDS[(seat - dealer(s) + 4) % 4];
-/** 현재 판의 親이 항상 'bottom' 화면 위치에 오도록 좌석을 화면 위치로 매핑한다. */
-export const posOf = (s: GameState, seat: SeatIndex): SeatIndex =>
-  ((seat - dealer(s) + 4) % 4) as SeatIndex;
+/**
+ * 좌석을 화면 위치로 매핑한다. 화면 방향은 고정이다: 좌석 0 = bottom, 1 = right,
+ * 2 = top, 3 = left. (예전에는 親이 항상 아래로 오도록 매 국 회전했지만, 아이패드를
+ * 탁자에 두고 쓸 때 방향이 계속 바뀌는 문제가 있어 고정으로 바꿨다.)
+ */
+export const posOf = (_s: GameState, seat: SeatIndex): SeatIndex => seat;
+
+/** 이스터에그: 이름이 "리지"인 사람의 "리치"는 "리지"로 표시한다. */
+export const riichiWord = (name: string) => (name.trim() === "리지" ? "리지" : "리치");
 
 function advanceRound(s: GameState): { kyoku: number; roundWind: number } {
   let { kyoku, roundWind } = s;
@@ -118,10 +125,24 @@ export function toggleRiichi(state: GameState, seat: SeatIndex): RiichiResult {
     i === seat ? { ...p, riichi: !wasRiichi, score: p.score + (wasRiichi ? 1000 : -1000) } : p
   ) as Players;
   const kyotaku = state.kyotaku + (wasRiichi ? -1 : 1);
-  const deltas = [0, 0, 0, 0];
-  deltas[seat] = wasRiichi ? 1000 : -1000;
   const midState: GameState = { ...state, players, kyotaku };
-  const entry = makeLogEntry(midState, `${player.name} 리치${wasRiichi ? " 취소" : ""}`, deltas, "riichi");
+
+  if (wasRiichi) {
+    // 취소는 기록에 남기지 않는다: 이 좌석의 마지막 "리치" 항목을 지우고 점수만 원복한다.
+    const log = [...state.log];
+    for (let i = log.length - 1; i >= 0; i--) {
+      const e = log[i];
+      if (e.kind === "riichi" && e.deltas && e.deltas[seat] === -1000) {
+        log.splice(i, 1);
+        break;
+      }
+    }
+    return { state: { ...midState, log }, ok: true };
+  }
+
+  const deltas = [0, 0, 0, 0];
+  deltas[seat] = -1000;
+  const entry = makeLogEntry(midState, `${player.name} ${riichiWord(player.name)}`, deltas, "riichi");
   return { state: { ...midState, log: [...state.log, entry] }, ok: true };
 }
 
@@ -201,6 +222,38 @@ export function applyDraw(state: GameState, draw: DrawInput): DrawApplyResult {
   }
 
   const next: GameState = { ...midState, kyoku, roundWind, honba, log: [...state.log, entry] };
+  return { state: finalizeAfterHand(next), deltas };
+}
+
+/**
+ * 쵼보: 그 국은 무효. 벌점을 지불하고, 이 국에 걸린 리치봉은 각자에게 돌려준다.
+ * 본장·親·국은 그대로 두고 같은 국을 다시 친다.
+ */
+export function applyChombo(state: GameState, input: ChomboInput): DrawApplyResult {
+  const d = dealer(state);
+  const { culprit, pay } = input;
+  const deltas = [0, 0, 0, 0];
+  const splitMode = pay === "split" && culprit !== d;
+  others(culprit).forEach((o) => {
+    const amt = splitMode ? (o === d ? 4000 : 2000) : 3000;
+    deltas[o] += amt;
+    deltas[culprit] -= amt;
+  });
+  // 리치봉 반환
+  let returned = 0;
+  state.players.forEach((p, i) => {
+    if (p.riichi) {
+      deltas[i] += 1000;
+      returned += 1;
+    }
+  });
+  const players = state.players.map((p, i) => ({ ...p, score: p.score + deltas[i], riichi: false })) as Players;
+  const kyotaku = Math.max(0, state.kyotaku - returned);
+  const midState: GameState = { ...state, players, kyotaku };
+  const how = splitMode ? "親 4000 · 子 2000" : "각 3000";
+  const text = `쵼보 · ${state.players[culprit].name} · ${how}${returned ? ` · 리치봉 ${returned}개 반환` : ""}`;
+  const entry = makeLogEntry(midState, text, deltas, "hand");
+  const next: GameState = { ...midState, log: [...state.log, entry] };
   return { state: finalizeAfterHand(next), deltas };
 }
 

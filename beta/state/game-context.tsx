@@ -10,7 +10,9 @@ import {
   type ReactNode,
 } from "react";
 import { DEFAULT_NAMES } from "@/lib/mahjong/constants";
+import { playNextRiichiBgm, stopRiichiBgm } from "@/lib/bgm";
 import {
+  applyChombo,
   applyDraw,
   applyHand,
   applySettingsUpdate,
@@ -26,6 +28,7 @@ import {
 } from "@/lib/mahjong/game";
 import { loadGame, saveGame } from "@/lib/storage";
 import type {
+  ChomboInput,
   DrawInput,
   GameSettings,
   GameState,
@@ -45,6 +48,7 @@ interface GameContextValue {
   doRiichi: (seat: SeatIndex) => void;
   confirmHand: (wins: WinInput[]) => ConfirmHandOutcome;
   confirmDraw: (draw: DrawInput) => { ended: boolean };
+  confirmChombo: (input: ChomboInput) => { ended: boolean };
   startNewGame: (names: string[], settings: GameSettings) => void;
   startGameFromState: (names: string[], settings: GameSettings, manual: ManualState) => void;
   restart: () => void;
@@ -86,16 +90,17 @@ export function GameProvider({ children }: { children: ReactNode }) {
 
   const doRiichi = useCallback(
     (seat: SeatIndex) => {
-      setState((prev) => {
-        const r = toggleRiichi(prev, seat);
-        if (!r.ok) {
-          if (r.message) showToast(r.message);
-          return prev;
-        }
-        return r.state;
-      });
+      const r = toggleRiichi(state, seat);
+      if (!r.ok) {
+        if (r.message) showToast(r.message);
+        return;
+      }
+      setState(r.state);
+      // BGM: 새 리치면 다음 곡으로, 취소면 남은 리치가 없을 때만 멈춘다.
+      if (r.state.players[seat].riichi) playNextRiichiBgm();
+      else if (!r.state.players.some((p) => p.riichi)) stopRiichiBgm();
     },
-    [showToast]
+    [state, showToast]
   );
 
   const confirmHand = useCallback(
@@ -107,6 +112,7 @@ export function GameProvider({ children }: { children: ReactNode }) {
       }
       setState(r.state);
       setFlash(r.deltas.some((d) => d) ? r.deltas : null);
+      stopRiichiBgm();
       return { ok: true, ended: r.state.ended };
     },
     [state, showToast]
@@ -117,6 +123,18 @@ export function GameProvider({ children }: { children: ReactNode }) {
       const r = applyDraw(state, draw);
       setState(r.state);
       setFlash(r.deltas.some((d) => d) ? r.deltas : null);
+      stopRiichiBgm();
+      return { ended: r.state.ended };
+    },
+    [state]
+  );
+
+  const confirmChombo = useCallback(
+    (input: ChomboInput): { ended: boolean } => {
+      const r = applyChombo(state, input);
+      setState(r.state);
+      setFlash(r.deltas.some((d) => d) ? r.deltas : null);
+      stopRiichiBgm();
       return { ended: r.state.ended };
     },
     [state]
@@ -125,6 +143,7 @@ export function GameProvider({ children }: { children: ReactNode }) {
   const startNewGame = useCallback(
     (names: string[], settings: GameSettings) => {
       setFlash(null);
+      stopRiichiBgm();
       setState(startGame(names, settings));
       showToast("게임을 시작했습니다");
     },
@@ -134,6 +153,7 @@ export function GameProvider({ children }: { children: ReactNode }) {
   const startGameFromState = useCallback(
     (names: string[], settings: GameSettings, manual: ManualState) => {
       setFlash(null);
+      stopRiichiBgm();
       setState(startGameWithManualState(names, settings, manual));
       showToast("게임을 시작했습니다");
     },
@@ -143,12 +163,14 @@ export function GameProvider({ children }: { children: ReactNode }) {
   const restart = useCallback(() => {
     setState((prev) => restartGame(prev));
     setFlash(null);
+    stopRiichiBgm();
     showToast("다시 시작했습니다");
   }, [showToast]);
 
   const goToSetup = useCallback(() => {
     setState((prev) => exitToSetup(prev));
     setFlash(null);
+    stopRiichiBgm();
   }, []);
 
   const saveSettings = useCallback(
@@ -169,6 +191,7 @@ export function GameProvider({ children }: { children: ReactNode }) {
       doRiichi,
       confirmHand,
       confirmDraw,
+      confirmChombo,
       startNewGame,
       startGameFromState,
       restart,
@@ -183,6 +206,7 @@ export function GameProvider({ children }: { children: ReactNode }) {
       doRiichi,
       confirmHand,
       confirmDraw,
+      confirmChombo,
       startNewGame,
       startGameFromState,
       restart,

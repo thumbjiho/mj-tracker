@@ -11,6 +11,8 @@ import {
   RON_OYA,
   TSUMO_KO,
   TSUMO_OYA,
+  YAKU_BY_ID,
+  YAKU_GROUPS,
 } from "@/lib/mahjong/constants";
 import { dealer, roundLabel, seatWind } from "@/lib/mahjong/game";
 import { basePoints, computeHand, computeWin, others, roundUp100 } from "@/lib/mahjong/scoring";
@@ -30,7 +32,11 @@ interface WinDraft {
   base: number | "";
   a: number | "";
   b: number | "";
-  tab: "quick" | "hanfu";
+  tab: "quick" | "hanfu" | "yaku";
+  /** 역 일람 탭: 체크한 역 id, 도라 개수, 멘젠 여부 */
+  yaku: string[];
+  dora: number;
+  menzen: boolean;
   pending: WinInput[];
 }
 
@@ -54,8 +60,47 @@ function freshDraft(preset?: WinDraftPreset): WinDraft {
     a: "",
     b: "",
     tab: "quick",
+    yaku: [],
+    dora: 0,
+    menzen: true,
     pending: [],
   };
+}
+
+/** 역 일람 체크 상태로부터 판수·표시 이름을 계산한다. */
+function yakuTotal(d: WinDraft): { han: number; limit: string | null; names: string[] } {
+  const defs = d.yaku.map((id) => YAKU_BY_ID[id]).filter(Boolean);
+  const names: string[] = [];
+  let yakumanX = 0;
+  let han = 0;
+  defs.forEach((y) => {
+    const h = d.menzen ? y.han : y.open;
+    if (h == null) return; // 멘젠 한정 역이 후로 상태면 무시
+    names.push(y.name);
+    if (y.yakuman) yakumanX += y.yakuman;
+    else han += h;
+  });
+  if (yakumanX > 0) {
+    const label = yakumanX >= 4 ? "4배역만" : yakumanX === 3 ? "트리플역만" : yakumanX === 2 ? "더블역만" : "역만";
+    return { han: yakumanX * 13, limit: label, names };
+  }
+  if (han === 0) return { han: 0, limit: null, names };
+  if (d.dora > 0) names.push(`도라${d.dora}`);
+  han += d.dora;
+  const lim = [...LIMITS].reverse().find(([, h]) => han >= h && h >= 5);
+  return { han, limit: lim ? lim[0] : null, names };
+}
+
+/** 역 체크 변경을 draft에 반영하고 판·부 자동 계산을 돌린다. */
+function applyYaku(d: WinDraft, isDealerWinner: boolean): WinDraft {
+  const t = yakuTotal(d);
+  let fu = d.fu;
+  const has = (id: string) => d.yaku.includes(id);
+  if (has("chiitoi")) fu = 25;
+  else if (has("pinfu")) fu = d.type === "tsumo" ? 20 : 30;
+  const next: WinDraft = { ...d, han: t.han, limit: t.limit, fu };
+  if (!t.han) return { ...next, base: "", a: "", b: "" };
+  return applyAutofill(next, isDealerWinner);
 }
 
 function stepsFor(d: WinDraft): WizardStep[] {
@@ -66,7 +111,13 @@ function stepsFor(d: WinDraft): WizardStep[] {
 }
 
 function winLabel(d: WinDraft): string {
-  return d.han ? d.limit || `${d.han}판 ${d.fu}부` : "";
+  if (!d.han) return "";
+  const core = d.limit || `${d.han}판 ${d.fu}부`;
+  if (d.tab === "yaku") {
+    const names = yakuTotal(d).names;
+    if (names.length) return `${core} (${names.join(" ")})`;
+  }
+  return core;
 }
 
 function entryOf(d: WinDraft): WinInput {
@@ -405,9 +456,100 @@ export function WinWizard({ preset, onDone }: { preset?: WinDraftPreset; onDone:
           <button type="button" className={draft.tab === "hanfu" ? "on" : ""} onClick={() => setDraft((p) => ({ ...p, tab: "hanfu" }))}>
             판 · 부
           </button>
+          <button
+            type="button"
+            className={draft.tab === "yaku" ? "on" : ""}
+            onClick={() => setDraft((p) => applyYaku({ ...p, tab: "yaku" }, isDealerWinner))}
+          >
+            역 일람
+          </button>
         </div>
 
-        {draft.tab === "quick" ? (
+        {draft.tab === "yaku" ? (
+          <>
+            <div
+              className={`switch ${draft.menzen ? "on" : ""}`}
+              role="switch"
+              aria-checked={draft.menzen}
+              tabIndex={0}
+              onClick={() => setDraft((p) => applyYaku({ ...p, menzen: !p.menzen }, isDealerWinner))}
+            >
+              <span>
+                멘젠
+                <small>{draft.menzen ? "울지 않은 손 · 멘젠 한정 역 가능" : "울은 손 · 쿠이사가리 적용"}</small>
+              </span>
+              <span className="knob" />
+            </div>
+            {YAKU_GROUPS.map((g) => (
+              <div className="yaku-grp" key={g.title}>
+                <div className="lbl">
+                  <span>{g.title}</span>
+                </div>
+                <div className="yaku-list">
+                  {g.items.map((y) => {
+                    const h = draft.menzen ? y.han : y.open;
+                    const on = draft.yaku.includes(y.id);
+                    return (
+                      <button
+                        key={y.id}
+                        type="button"
+                        className={`ychip ${on ? "on" : ""}`}
+                        disabled={h == null}
+                        onClick={() =>
+                          setDraft((p) =>
+                            applyYaku(
+                              { ...p, yaku: on ? p.yaku.filter((id) => id !== y.id) : [...p.yaku, y.id] },
+                              isDealerWinner
+                            )
+                          )
+                        }
+                      >
+                        <span>{y.name}</span>
+                        <b>{h == null ? "멘젠" : y.yakuman ? (y.yakuman === 2 ? "더블" : "역만") : `${h}판`}</b>
+                      </button>
+                    );
+                  })}
+                </div>
+              </div>
+            ))}
+            <div className="lbl">
+              <span>도라</span>
+              <span className="hint">적도라 · 뒷도라 · 깡도라 포함</span>
+            </div>
+            <div className="stepper">
+              <button type="button" onClick={() => setDraft((p) => applyYaku({ ...p, dora: Math.max(0, p.dora - 1) }, isDealerWinner))}>
+                −
+              </button>
+              <b>{draft.dora}</b>
+              <button type="button" onClick={() => setDraft((p) => applyYaku({ ...p, dora: p.dora + 1 }, isDealerWinner))}>
+                +
+              </button>
+            </div>
+            <div className="lbl">
+              <span>부</span>
+              <span className="hint">{fuOn ? "" : "1~4판일 때만 고릅니다"}</span>
+            </div>
+            <div className={`chips hf fu-static ${fuOn ? "" : "dimmed"}`}>
+              {FUS.map((f) => (
+                <button
+                  key={f}
+                  type="button"
+                  className={`chip sm ${fuOn && draft.fu === f ? "on" : ""}`}
+                  disabled={!fuOn}
+                  onClick={() => setDraft((p) => applyAutofill({ ...p, fu: f }, isDealerWinner))}
+                >
+                  {f}부
+                </button>
+              ))}
+            </div>
+            <div className="sum">
+              <div className="li">
+                <span className="k">{winLabel(draft) || "역을 체크하세요"}</span>
+                <span className="v amber">{preview.ok ? preview.base : "—"}</span>
+              </div>
+            </div>
+          </>
+        ) : draft.tab === "quick" ? (
           <>
             {draft.type === "ron" ? (
               <div className="chips">
