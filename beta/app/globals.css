@@ -159,7 +159,9 @@ small{font-size:.8em}
   .pwb.right .lab{transform:rotate(-90deg) translateY(9cqw)}
   .pwm{left:0;top:0;right:0;bottom:0;pointer-events:none}
   .pwm-top,.pwm-bot{display:none}
-  .pwc{width:min(36cqw,36cqh);height:min(36cqw,36cqh)}
+  /* 독 모드에서는 원판 아래에 버튼이 없고 화료 버튼이 사각형 전체를 덮으므로, 원판이 직접
+     터치를 받아야 가운데 길게 누르기(타이머)가 동작한다. 이벤트는 .pwm 으로 버블링된다. */
+  .pwc{width:min(36cqw,36cqh);height:min(36cqw,36cqh);pointer-events:auto;touch-action:none;-webkit-touch-callout:none}
   #dock{display:block}
 }
 @media (min-aspect-ratio:13/10){
