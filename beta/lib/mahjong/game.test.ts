@@ -35,12 +35,15 @@ describe("dealer / seatWind / posOf", () => {
     expect(seatWind(state, 0)).toBe("北");
   });
 
-  it("posOf always puts the dealer at position 0 (bottom)", () => {
+  it("posOf is a fixed seat->screen-position mapping, independent of the dealer", () => {
+    // Screen orientation is intentionally fixed (not rotated to the dealer) so a
+    // tablet lying on the table doesn't flip every hand — see the comment on
+    // posOf in game.ts. It's just the identity map: posOf(seat) === seat.
     const state = freshGame({ kyoku: 3 }); // dealer = seat 2
-    expect(posOf(state, 2)).toBe(0);
-    expect(posOf(state, 3)).toBe(1);
-    expect(posOf(state, 0)).toBe(2);
-    expect(posOf(state, 1)).toBe(3);
+    expect(posOf(state, 0)).toBe(0);
+    expect(posOf(state, 1)).toBe(1);
+    expect(posOf(state, 2)).toBe(2);
+    expect(posOf(state, 3)).toBe(3);
   });
 });
 
