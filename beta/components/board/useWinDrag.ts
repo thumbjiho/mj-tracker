@@ -115,7 +115,7 @@ export function useWinDrag(state: GameState, onResolve: (r: WinDragResolution) =
         const seat = i as SeatIndex;
         const pc = POS_CLASS[posOf(s, seat)];
         const r = cellRect(...CELL[pc]);
-        if (seat === w.seat) zone(r, `me cancel ${pc}`, "cancel", seat, `<b>취소</b><span>여기 놓으면 없던 일로</span>`);
+        if (seat === w.seat) zone(r, `me cancel ${pc}`, "cancel", seat, `<b>취소</b><span>여기 놓으면 취소</span>`);
         else zone(r, pc, "ron", seat, `<b>론</b><span>${esc(p.name)} 방총</span>`);
       });
       zone(cellRect(1, 1), "center", "tsumo", null, `<b>쯔모</b><span>${esc(s.players[w.seat].name)} 쯔모</span>`);

@@ -385,10 +385,13 @@ input[type=number].auto{color:var(--muted)}
 .pwc.timing{background:#1a0f0d;border-color:var(--red)}
 .pwc .pie{position:absolute;inset:0;width:100%;height:100%;pointer-events:none}
 .pwc .tsec{position:relative;font-family:var(--num);font-weight:700;font-size:min(46cqw,46cqh);line-height:1;color:#fff;text-shadow:0 2px 8px rgba(0,0,0,.5);font-variant-numeric:tabular-nums}
-/* ---- 드래그 취소 존 ---- */
-.wzone.cancel{border-style:dashed;color:var(--muted)}
-.wzone.cancel.hov{background:var(--panel-2);border-color:var(--ink-2);color:var(--ink);box-shadow:none}
-.wzone.cancel.hov .zl span{color:var(--ink-2)}
+/* ---- 드래그 취소 존: 다른 존(초록 패널/노란 hov)과 확실히 다르게 — 회색 바탕 + 빨간 점선 + × ---- */
+.wzone.cancel{background:rgba(60,60,60,.92);border:3px dashed var(--red);color:rgba(255,255,255,.75);background-image:repeating-linear-gradient(135deg,rgba(255,255,255,.05) 0 10px,transparent 10px 20px)}
+.wzone.cancel .zl b{color:var(--red);font-size:clamp(18px,4.2vmin,34px)}
+.wzone.cancel .zl b::before{content:'✕';display:block;font-size:1.5em;line-height:1;margin-bottom:6px}
+.wzone.cancel .zl span{color:rgba(255,255,255,.6)}
+.wzone.cancel.hov{background:var(--red);background-image:none;border-color:#fff;border-style:solid;color:#fff;box-shadow:0 0 0 4px rgba(232,85,63,.35),0 0 48px 8px rgba(232,85,63,.55)}
+.wzone.cancel.hov .zl b,.wzone.cancel.hov .zl span{color:#fff;opacity:1}
 /* ---- 토글 스위치 ---- */
 .switch{display:flex;align-items:center;justify-content:space-between;gap:12px;font-size:16px;padding:14px;border-radius:14px;background:var(--panel);border:1px solid var(--line);cursor:pointer}
 .switch small{display:block;font-size:12px;color:var(--muted);margin-top:2px}
