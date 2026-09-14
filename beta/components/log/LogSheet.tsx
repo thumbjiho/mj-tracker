@@ -8,11 +8,12 @@ import { sgn } from "@/lib/format";
 import { SERIES } from "@/lib/mahjong/constants";
 import { roundLabel } from "@/lib/mahjong/game";
 import { settle } from "@/lib/mahjong/scoring";
+import type { GameState } from "@/lib/mahjong/types";
 import { useGame } from "@/state/game-context";
 import { ScoreChart } from "./ScoreChart";
 
 /** Ports exportImage(): renders a shareable PNG summary (chart + standings). */
-async function renderSummaryPng(state: ReturnType<typeof useGame>["state"]): Promise<string> {
+async function renderSummaryPng(state: GameState): Promise<string> {
   const pts = chartSeries(state);
   const names = state.players.map((p) => p.name);
   const W = 1200;
@@ -83,8 +84,7 @@ async function renderSummaryPng(state: ReturnType<typeof useGame>["state"]): Pro
 }
 
 export function LogSheet({ onClose }: { onClose: () => void }) {
-  const game = useGame();
-  const { state } = game;
+  const { state } = useGame();
   const [imageUrl, setImageUrl] = useState<string | null>(null);
   const rows = [...state.log].reverse();
 

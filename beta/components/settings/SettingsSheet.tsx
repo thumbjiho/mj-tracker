@@ -4,11 +4,12 @@ import { useState } from "react";
 import { ConfirmDialog } from "@/components/chrome/ConfirmDialog";
 import { Full } from "@/components/chrome/Full";
 import { useEscapeKey } from "@/components/chrome/useEscapeKey";
+import { ManualStateFields, type ManualRow } from "@/components/setup/ManualStateFields";
 import { PlayerOrderList } from "@/components/setup/PlayerOrderList";
 import { RuleFields } from "@/components/setup/RuleFields";
 import { useManualScores } from "@/components/setup/useManualScores";
-import { DEFAULT_NAMES, WINDS } from "@/lib/mahjong/constants";
 import { sgn } from "@/lib/format";
+import { DEFAULT_NAMES } from "@/lib/mahjong/constants";
 import type { ManualState, SettingsUpdate } from "@/lib/mahjong/game";
 import type { GameSettings, SeatIndex } from "@/lib/mahjong/types";
 import { useGame } from "@/state/game-context";
@@ -32,7 +33,11 @@ export function SettingsSheet({ onClose }: { onClose: () => void }) {
   const [confirmingRestart, setConfirmingRestart] = useState(false);
 
   const { setScore, setKyotaku, isAuto, total, expect, balanced } = useManualScores(manual, setManual, settings.start);
-  const dealerPos = (manual.kyoku - 1) % 4;
+  const rows: ManualRow[] = order.map((originalSeat, pos) => ({
+    seat: originalSeat,
+    pos,
+    name: names[originalSeat]?.trim() || DEFAULT_NAMES[originalSeat],
+  }));
 
   useEscapeKey(onClose, !confirmingRestart);
 
@@ -90,88 +95,17 @@ export function SettingsSheet({ onClose }: { onClose: () => void }) {
       </div>
 
       <div data-pane="state" hidden={tab !== "state"}>
-        <div className="lbl">
-          <span>장풍</span>
-        </div>
-        <div className="seg">
-          {[0, 1, 2].map((v) => (
-            <button key={v} type="button" className={manual.roundWind === v ? "on" : ""} onClick={() => setManual((m) => ({ ...m, roundWind: v }))}>
-              {WINDS[v]}장
-            </button>
-          ))}
-        </div>
-        <div className="lbl">
-          <span>국</span>
-        </div>
-        <div className="seg">
-          {[1, 2, 3, 4].map((v) => (
-            <button key={v} type="button" className={manual.kyoku === v ? "on" : ""} onClick={() => setManual((m) => ({ ...m, kyoku: v }))}>
-              {v}국
-            </button>
-          ))}
-        </div>
-        <div className="row2">
-          <div>
-            <div className="lbl">
-              <span>본장</span>
-            </div>
-            <div className="stp">
-              <button type="button" className="stp-b" onClick={() => setManual((m) => ({ ...m, honba: Math.max(0, m.honba - 1) }))}>
-                −
-              </button>
-              <input
-                type="number"
-                inputMode="numeric"
-                min={0}
-                value={manual.honba}
-                onChange={(e) => setManual((m) => ({ ...m, honba: Math.max(0, Number(e.target.value) || 0) }))}
-              />
-              <button type="button" className="stp-b" onClick={() => setManual((m) => ({ ...m, honba: m.honba + 1 }))}>
-                +
-              </button>
-            </div>
-          </div>
-          <div>
-            <div className="lbl">
-              <span>공탁 리치봉</span>
-            </div>
-            <div className="stp">
-              <button type="button" className="stp-b" onClick={() => setKyotaku(manual.kyotaku - 1)}>
-                −
-              </button>
-              <input type="number" inputMode="numeric" min={0} value={manual.kyotaku} onChange={(e) => setKyotaku(Number(e.target.value) || 0)} />
-              <button type="button" className="stp-b" onClick={() => setKyotaku(manual.kyotaku + 1)}>
-                +
-              </button>
-            </div>
-          </div>
-        </div>
-        <div className="lbl">
-          <span>각자 점수</span>
-          <span>
-            {balanced ? (
-              `합계 ${total} ✓`
-            ) : (
-              <span style={{ color: "var(--red)" }}>{`합계 ${total} (기준 ${expect})`}</span>
-            )}
-          </span>
-        </div>
-        <div className="mrows">
-          {order.map((originalSeat, pos) => (
-            <div className="mrow" key={originalSeat}>
-              <span className={`wind ${dealerPos === pos ? "dl" : ""}`}>{WINDS[pos]}</span>
-              <span className="mname">{names[originalSeat]?.trim() || DEFAULT_NAMES[originalSeat]}</span>
-              <input
-                type="number"
-                inputMode="numeric"
-                step={100}
-                className={isAuto(originalSeat) ? "auto" : ""}
-                value={manual.scores[originalSeat]}
-                onChange={(e) => setScore(originalSeat, Number(e.target.value) || 0)}
-              />
-            </div>
-          ))}
-        </div>
+        <ManualStateFields
+          manual={manual}
+          setManual={setManual}
+          setScore={setScore}
+          setKyotaku={setKyotaku}
+          isAuto={isAuto}
+          total={total}
+          expect={expect}
+          balanced={balanced}
+          rows={rows}
+        />
         <div className="note">붉은 배지가 선택한 국의 親입니다. 자리 순서는 게임 설정 탭의 순서를 따릅니다.</div>
         <div className="note">한 명의 점수를 고치면 아직 손대지 않은 칸이 합계에 맞게 자동으로 채워집니다.</div>
         {state.ended && (

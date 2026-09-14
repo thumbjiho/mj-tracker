@@ -3,10 +3,11 @@
 import { useState } from "react";
 import { Full } from "@/components/chrome/Full";
 import { sgn } from "@/lib/format";
-import { DEFAULT_NAMES, WINDS } from "@/lib/mahjong/constants";
+import { DEFAULT_NAMES } from "@/lib/mahjong/constants";
 import type { ManualState } from "@/lib/mahjong/game";
 import type { GameSettings, SeatIndex } from "@/lib/mahjong/types";
 import { useGame } from "@/state/game-context";
+import { ManualStateFields, type ManualRow } from "./ManualStateFields";
 import { PlayerOrderList } from "./PlayerOrderList";
 import { RuleFields } from "./RuleFields";
 import { useManualScores } from "./useManualScores";
@@ -86,7 +87,7 @@ function ContinueScreen({
   onStart: (m: ManualState) => void;
 }) {
   const { setScore, setKyotaku, isAuto, total, expect, balanced } = useManualScores(manual, onChange, settings.start);
-  const dealerPos = (manual.kyoku - 1) % 4;
+  const rows: ManualRow[] = names.map((name, i) => ({ seat: i as SeatIndex, pos: i, name }));
 
   return (
     <Full
@@ -98,82 +99,17 @@ function ContinueScreen({
         </button>
       }
     >
-      <div className="lbl">
-        <span>장풍</span>
-      </div>
-      <div className="seg">
-        {[0, 1, 2].map((v) => (
-          <button key={v} type="button" className={manual.roundWind === v ? "on" : ""} onClick={() => onChange({ ...manual, roundWind: v })}>
-            {WINDS[v]}장
-          </button>
-        ))}
-      </div>
-      <div className="lbl">
-        <span>국</span>
-      </div>
-      <div className="seg">
-        {[1, 2, 3, 4].map((v) => (
-          <button key={v} type="button" className={manual.kyoku === v ? "on" : ""} onClick={() => onChange({ ...manual, kyoku: v })}>
-            {v}국
-          </button>
-        ))}
-      </div>
-      <div className="row2">
-        <div>
-          <div className="lbl">
-            <span>본장</span>
-          </div>
-          <div className="stp">
-            <button type="button" className="stp-b" onClick={() => onChange({ ...manual, honba: Math.max(0, manual.honba - 1) })}>
-              −
-            </button>
-            <input
-              type="number"
-              inputMode="numeric"
-              min={0}
-              value={manual.honba}
-              onChange={(e) => onChange({ ...manual, honba: Math.max(0, Number(e.target.value) || 0) })}
-            />
-            <button type="button" className="stp-b" onClick={() => onChange({ ...manual, honba: manual.honba + 1 })}>
-              +
-            </button>
-          </div>
-        </div>
-        <div>
-          <div className="lbl">
-            <span>공탁 리치봉</span>
-          </div>
-          <div className="stp">
-            <button type="button" className="stp-b" onClick={() => setKyotaku(manual.kyotaku - 1)}>
-              −
-            </button>
-            <input type="number" inputMode="numeric" min={0} value={manual.kyotaku} onChange={(e) => setKyotaku(Number(e.target.value) || 0)} />
-            <button type="button" className="stp-b" onClick={() => setKyotaku(manual.kyotaku + 1)}>
-              +
-            </button>
-          </div>
-        </div>
-      </div>
-      <div className="lbl">
-        <span>각자 점수</span>
-        <span>{balanced ? `합계 ${total} ✓` : <span style={{ color: "var(--red)" }}>{`합계 ${total} (기준 ${expect}, 차이 ${sgn(total - expect)})`}</span>}</span>
-      </div>
-      <div className="mrows">
-        {names.map((nm, i) => (
-          <div className="mrow" key={i}>
-            <span className={`wind ${dealerPos === i ? "dl" : ""}`}>{WINDS[i]}</span>
-            <span className="mname">{nm}</span>
-            <input
-              type="number"
-              inputMode="numeric"
-              step={100}
-              className={isAuto(i) ? "auto" : ""}
-              value={manual.scores[i]}
-              onChange={(e) => setScore(i, Number(e.target.value) || 0)}
-            />
-          </div>
-        ))}
-      </div>
+      <ManualStateFields
+        manual={manual}
+        setManual={onChange}
+        setScore={setScore}
+        setKyotaku={setKyotaku}
+        isAuto={isAuto}
+        total={total}
+        expect={expect}
+        balanced={balanced}
+        rows={rows}
+      />
       <div className="note">붉은 배지가 선택한 국의 親입니다. 자리 순서는 게임 설정 탭의 순서를 따릅니다.</div>
       <div className="note">한 명의 점수를 고치면 아직 손대지 않은 칸이 합계에 맞게 자동으로 채워집니다.</div>
       <div className="note">입력한 상황 그대로 게임을 시작합니다. 합계가 맞지 않아도 시작할 수 있습니다.</div>
