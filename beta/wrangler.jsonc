@@ -13,6 +13,10 @@
   },
   "routes": [
     {
+      "pattern": "play.machete.club",
+      "custom_domain": true
+    },
+    {
       "pattern": "beta.play.machete.club",
       "custom_domain": true
     }

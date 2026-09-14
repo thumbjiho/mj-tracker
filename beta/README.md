@@ -1,9 +1,10 @@
-# mj-tracker (베타)
+# mj-tracker
 
-리치 마작 점수 계산기. 기존 단일 HTML 파일(알파, `../public/index.html`)을
-Next.js + React + Tailwind CSS로 재작성한 버전입니다. 컴포넌트/타입을 갖춰
-앞으로 기능을 추가하거나 고치기 쉽게 만들면서, 알파와 픽셀 단위로 동일하게
-동작하도록 검증했습니다 (Playwright로 두 버전을 나란히 띄워 스크린샷·동작 비교).
+리치 마작 점수 계산기. 원래 단일 HTML 파일(알파)로 시작했던 것을 Next.js +
+React + Tailwind CSS로 재작성했습니다. 재작성 직후에는 알파와 픽셀 단위로
+동일하게 동작하도록 검증했고 (Playwright로 두 버전을 나란히 띄워 스크린샷·동작
+비교), 검증이 끝난 뒤 알파를 완전히 대체하며 제거했습니다 — 원래 알파 소스는 git
+히스토리(`44cc819` 이전)에 남아 있습니다.
 
 ## 아키텍처
 
@@ -27,7 +28,7 @@ Next.js + React + Tailwind CSS로 재작성한 버전입니다. 컴포넌트/타
 - `lib/storage.ts` — localStorage 저장/불러오기 (`mj-tracker-beta-v1` 키, 알파와
   분리되어 있어 서로 데이터를 공유하지 않습니다).
 
-## 알파와 달라진 동작
+## 알파와 달라졌던 동작 (재작성 시점 기준)
 
 - **화면 방향 고정** — 좌석 0이 항상 아래(bottom). 親이 아래로 오도록 매 국 회전하지
   않습니다 (아이패드를 탁자에 두고 쓸 때 방향이 바뀌는 문제). 親은 좌석 강조와 바람
@@ -74,4 +75,6 @@ npm run deploy   # opennextjs-cloudflare build && opennextjs-cloudflare deploy
 npm run preview  # 배포 전 Workers 런타임에서 미리보기
 ```
 
-`wrangler.jsonc`에서 `beta.play.machete.club` 커스텀 도메인으로 라우팅됩니다.
+`wrangler.jsonc`에서 `play.machete.club`과 `beta.play.machete.club` 두 커스텀
+도메인 모두 이 Worker(`mj-tracker-beta`)로 라우팅됩니다 — 알파를 대체한 뒤로
+이 배포가 곧 프로덕션입니다.
