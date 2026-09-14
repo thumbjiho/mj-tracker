@@ -30,10 +30,10 @@ function esc(s: string) {
 }
 
 /**
- * Ports the alpha's drag-to-assign gesture almost verbatim: hold or drag a
- * seat's 화료 wedge onto another seat (ron), onto itself (tsumo), or onto the
- * center (manual step-by-step). A quick tap (no drag past the threshold)
- * falls through to opening the wizard at the "type" step, same as before.
+ * Drag-to-assign gesture: hold or drag a seat's 화료 wedge onto another seat
+ * (ron), onto the center (tsumo), or back onto the winner's own seat (cancel —
+ * nothing happens). A quick tap (no drag past the threshold) opens the wizard
+ * at the "type" step for step-by-step input.
  * Kept imperative/DOM-direct like the source — this gesture is inherently
  * about raw pointer coordinates and one-off overlay elements, not state.
  */
@@ -115,10 +115,10 @@ export function useWinDrag(state: GameState, onResolve: (r: WinDragResolution) =
         const seat = i as SeatIndex;
         const pc = POS_CLASS[posOf(s, seat)];
         const r = cellRect(...CELL[pc]);
-        if (seat === w.seat) zone(r, `me ${pc}`, "tsumo", seat, `<b>쯔모</b><span>${esc(p.name)} 본인</span>`);
+        if (seat === w.seat) zone(r, `me cancel ${pc}`, "cancel", seat, `<b>취소</b><span>여기 놓으면 취소</span>`);
         else zone(r, pc, "ron", seat, `<b>론</b><span>${esc(p.name)} 방총</span>`);
       });
-      zone(cellRect(1, 1), "center", "manual", null, `<b>직접 설정</b><span>단계별 입력</span>`);
+      zone(cellRect(1, 1), "center", "tsumo", null, `<b>쯔모</b><span>${esc(s.players[w.seat].name)} 쯔모</span>`);
 
       document.body.appendChild(ov);
       w.over = ov;
@@ -146,10 +146,8 @@ export function useWinDrag(state: GameState, onResolve: (r: WinDragResolution) =
         resolveRef.current({ winner: w.seat, step: "type" });
         return;
       }
-      if (!t) return;
-      if (t.kind === "manual") {
-        resolveRef.current({ winner: w.seat, step: "type" });
-      } else if (t.kind === "ron") {
+      if (!t || t.kind === "cancel") return;
+      if (t.kind === "ron") {
         resolveRef.current({ winner: w.seat, type: "ron", loser: t.seat, step: "points" });
       } else {
         resolveRef.current({ winner: w.seat, type: "tsumo", step: "points" });

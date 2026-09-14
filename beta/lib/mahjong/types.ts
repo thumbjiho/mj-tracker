@@ -67,6 +67,14 @@ export interface DrawInput {
   abortive: boolean;
 }
 
+/** 쵼보 지불 방식: flat = 세 명에게 각 3000, split = 親 4000 · 子 2000 (親이 쵼보면 각 3000) */
+export type ChomboPay = "flat" | "split";
+
+export interface ChomboInput {
+  culprit: SeatIndex;
+  pay: ChomboPay;
+}
+
 export interface WinResult {
   ok: boolean;
   deltas: [number, number, number, number];

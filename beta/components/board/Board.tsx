@@ -15,8 +15,6 @@ interface BoardProps {
   flash: number[] | null;
   onToggleRiichi: (seat: SeatIndex) => void;
   onSeatPointerDown: (seat: SeatIndex, e: ReactPointerEvent<HTMLDivElement>) => void;
-  onSeatPointerUp: (seat: SeatIndex, e: ReactPointerEvent<HTMLDivElement>) => void;
-  onSeatPointerCancel: (seat: SeatIndex, e: ReactPointerEvent<HTMLDivElement>) => void;
   onDraw: () => void;
   onMenu: () => void;
 }
@@ -26,8 +24,6 @@ export function Board({
   flash,
   onToggleRiichi,
   onSeatPointerDown,
-  onSeatPointerUp,
-  onSeatPointerCancel,
   onDraw,
   onMenu,
 }: BoardProps) {
@@ -54,8 +50,6 @@ export function Board({
                 flashDelta={flash ? flash[seat] : 0}
                 onToggleRiichi={() => onToggleRiichi(seat)}
                 onCardPointerDown={(e) => onSeatPointerDown(seat, e)}
-                onCardPointerUp={(e) => onSeatPointerUp(seat, e)}
-                onCardPointerCancel={(e) => onSeatPointerCancel(seat, e)}
               />
             </div>
           );

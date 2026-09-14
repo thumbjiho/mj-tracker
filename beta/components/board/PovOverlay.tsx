@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { deltaClass, sgn } from "@/lib/format";
-import { posOf, roundLabel, seatWind } from "@/lib/mahjong/game";
+import { posOf, riichiWord, roundLabel, seatWind } from "@/lib/mahjong/game";
 import type { GameState, SeatIndex } from "@/lib/mahjong/types";
 
 const SEAT_ROT = [0, -90, 180, 90];
@@ -30,6 +30,9 @@ export function PovOverlay({
   onClose: () => void;
 }) {
   const rot = SEAT_ROT[posOf(state, seat)];
+  // 닫기는 click 이 아니라 pointerup 으로 받는다. 터치에서는 POV 를 연 탭의 합성 click 이
+  // 새로 생긴 오버레이에 떨어져 곧바로 닫혀 버렸다(깜빡임). pointerup 은 연 탭에서는
+  // 카드 쪽에서 이미 소비됐으므로 오버레이에는 다음 탭부터 도달한다.
   // Matches the alpha exactly: computed once at open time, not recalculated on resize.
   const [{ w, h, side, cell }] = useState(() => computeMetrics(rot));
   const me = state.players[seat];
@@ -52,7 +55,7 @@ export function PovOverlay({
   };
 
   return (
-    <div className="pov" onClick={onClose}>
+    <div className="pov" onPointerUp={onClose}>
       <div
         className="pov-in"
         style={{ width: w, height: h, transform: `translate(-50%,-50%) rotate(${rot}deg)` }}
@@ -73,7 +76,7 @@ export function PovOverlay({
             <span className="rel">{seatWind(state, seat)} · 나</span>
             <span className="nm">{me.name}</span>
             <span className="df">{me.score}</span>
-            <span className="sc">{me.riichi ? "리치 중" : state.kyotaku ? `공탁 ${state.kyotaku}` : " "}</span>
+            <span className="sc">{me.riichi ? `${riichiWord(me.name)} 중` : state.kyotaku ? `공탁 ${state.kyotaku}` : " "}</span>
           </div>
         </div>
       </div>
