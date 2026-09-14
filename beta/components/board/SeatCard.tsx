@@ -1,6 +1,7 @@
 "use client";
 
 import { deltaClass, sgn } from "@/lib/format";
+import { riichiWord } from "@/lib/mahjong/game";
 import type { SeatIndex } from "@/lib/mahjong/types";
 import type { PointerEvent as ReactPointerEvent } from "react";
 
@@ -14,8 +15,6 @@ interface SeatCardProps {
   flashDelta: number;
   onToggleRiichi: () => void;
   onCardPointerDown: (e: ReactPointerEvent<HTMLDivElement>) => void;
-  onCardPointerUp: (e: ReactPointerEvent<HTMLDivElement>) => void;
-  onCardPointerCancel: (e: ReactPointerEvent<HTMLDivElement>) => void;
 }
 
 export function SeatCard({
@@ -28,16 +27,12 @@ export function SeatCard({
   flashDelta,
   onToggleRiichi,
   onCardPointerDown,
-  onCardPointerUp,
-  onCardPointerCancel,
 }: SeatCardProps) {
   return (
     <div
       className="card"
       data-seat={seat}
       onPointerDown={onCardPointerDown}
-      onPointerUp={onCardPointerUp}
-      onPointerCancel={onCardPointerCancel}
       onContextMenu={(e) => e.preventDefault()}
     >
       <div className="who">
@@ -57,10 +52,9 @@ export function SeatCard({
           onToggleRiichi();
         }}
         disabled={ended}
-        aria-label="리치"
+        aria-label={riichiWord(name)}
       >
-        <span className="stick" />
-        <span>리치!</span>
+        <span>{riichiWord(name)}!</span>
       </button>
     </div>
   );
