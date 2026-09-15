@@ -7,7 +7,24 @@
  * 브라우저 오토플레이 정책상 재생은 반드시 사용자 제스처(리치 버튼 탭) 안에서 시작해야
  * 하므로 이 모듈은 상태 변화에 반응하지 않고, 호출하는 쪽에서 명시적으로 부른다.
  */
-const TRACKS = ["/bgm/riichi-1.mp3", "/bgm/riichi-2.mp3"];
+const TRACKS = [
+  "/bgm/riichi-1.mp3",
+  "/bgm/riichi-2.mp3",
+  "/bgm/jantama-gyeoljeon.mp3",
+  "/bgm/jantama-myeongjinsahae.mp3",
+  "/bgm/jantama-mirae-seonyul.mp3",
+  "/bgm/jantama-chum-seogok.mp3",
+  "/bgm/jantama-pajukjise.mp3",
+  "/bgm/jantama-riichi-goyo.mp3",
+  "/bgm/jantama-riichi-tteugeoun-sungan.mp3",
+  "/bgm/jantama-riichi-bidan-kkum.mp3",
+  "/bgm/jantama-riichi-seungni-gil.mp3",
+  "/bgm/jantama-riichi-seungseungjanggu.mp3",
+  "/bgm/jantama-riichi-ilchokjukbal.mp3",
+  "/bgm/jantama-riichi-jingeomseungbu-8bit.mp3",
+  "/bgm/jantama-riichi-jingeomseungbu.mp3",
+  "/bgm/jantama-riichi-chuljin.mp3",
+];
 
 let audio: HTMLAudioElement | null = null;
 let nextTrack = 0;
